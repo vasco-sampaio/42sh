@@ -1,0 +1,3 @@
+if false || echo yes; then
+pwd || false && echo OUI
+fi

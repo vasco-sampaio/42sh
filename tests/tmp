@@ -1,0 +1,4 @@
+if true; then
+echo test | tr
+ls | head
+fi

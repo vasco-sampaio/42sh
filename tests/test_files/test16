@@ -1,0 +1,3 @@
+if false || false || false; then
+echo test
+fi
