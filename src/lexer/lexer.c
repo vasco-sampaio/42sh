@@ -9,7 +9,7 @@
 #include <utils/utils.h>
 #include <utils/vec.h>
 
-#define SIZE 12
+#define SIZE 21
 
 static int isvalidampersand(char *str)
 {
@@ -27,11 +27,11 @@ static int isvalidampersand(char *str)
 static int isvalidredir(char *str)
 {
     int i = 0;
-    while (str[i] != 0 && str[i] != ' ')
+    while (str[i] != '\0' && str[i] != ' ')
         i++;
-    if (str[i] == 0)
+    if (str[i] == '\0')
         return isvalidampersand(str);
-    if (str[i + 1] != 0 && str[i + 1] == '&')
+    if (str[i + 1] != '\0' && str[i + 1] == '&')
         return 0;
     return isvalidampersand(str);
 }
@@ -67,11 +67,16 @@ static int match_token(char *str, int quote)
         fprintf(stderr, "Syntax error: '&' unexpected\n");
         return TOKEN_ERROR;
     }
-    char *names[SIZE] = { "if", "then", "else", "elif", "fi", ";",
-                          "\n", "!",    "||",   "&&",   "|",  "echo" };
-    int types[SIZE] = { TOKEN_IF, TOKEN_THEN,  TOKEN_ELSE, TOKEN_ELIF,
-                        TOKEN_FI, TOKEN_SEMIC, TOKEN_NEWL, TOKEN_NEG,
-                        TOKEN_OR, TOKEN_AND,   TOKEN_PIPE, TOKEN_ECHO };
+    char *names[SIZE] = { "if",   "then",   "else", "elif", "fi", ";",
+                          "\n",   "!",      "||",   "&&",   "|",  "while",
+                          "for",  "until",  "do",   "done", "in", "echo",
+                          "exit", "export", "." };
+    int types[SIZE] = { TOKEN_IF,  TOKEN_THEN,  TOKEN_ELSE, TOKEN_ELIF,
+                        TOKEN_FI,  TOKEN_SEMIC, TOKEN_NEWL, TOKEN_NEG,
+                        TOKEN_OR,  TOKEN_AND,   TOKEN_PIPE, TOKEN_WHILE,
+                        TOKEN_FOR, TOKEN_UNTIL, TOKEN_DO,   TOKEN_DONE,
+                        TOKEN_IN,  TOKEN_ECHO,  TOKEN_EXIT, TOKEN_EXPORT,
+                        TOKEN_DOT };
     for (size_t i = 0; i < SIZE; i++)
     {
         if (strcmp(str, names[i]) == 0)
@@ -92,18 +97,22 @@ static int match_token(char *str, int quote)
  */
 static int handle_quotes(struct lexer *lexer, struct vec *vec, size_t len)
 {
-    // vec_push(vec, lexer->input[lexer->pos++]); // Skip opening quote
-    lexer->pos++;
-    while (lexer->pos < len && lexer->input[lexer->pos] != '\'')
+    char quote_type = lexer->input[lexer->pos]; // ' or "
+    vec_push(vec, lexer->input[lexer->pos++]);
+    size_t save_pos = lexer->pos;
+    while (lexer->pos < len && lexer->input[lexer->pos] != '\n'
+           && (lexer->input[lexer->pos] != quote_type
+               || (lexer->pos != 0
+                   && (quote_type == '\''
+                       || lexer->input[lexer->pos - 1] == '\\'))))
         vec_push(vec, lexer->input[lexer->pos++]);
-    if (lexer->pos == len)
+    if (lexer->input[lexer->pos] == quote_type)
+        vec_push(vec, lexer->input[lexer->pos++]);
+    if (vec->data[vec->size - 1] != quote_type || save_pos == lexer->pos)
     {
         fprintf(stderr, "Syntax error: Unterminated quoted string\n");
         return -1;
     }
-
-    // vec_push(vec, lexer->input[lexer->pos++]); // Skip closing quote
-    lexer->pos++;
     return 0;
 }
 
@@ -124,8 +133,7 @@ static size_t get_redir_idx(struct lexer *lexer, size_t len)
     if (i == 0)
         return 0;
 
-    if (isdigit(lexer->input[i - 1])
-        && (i - 2 < 0 || lexer->input[i - 2] == ' '))
+    if (isdigit(lexer->input[i - 1]) && (i < 2 || lexer->input[i - 2] == ' '))
         return i - 1;
     return i;
 }
@@ -144,11 +152,15 @@ static int get_substr(struct lexer *lexer, struct vec *vec, size_t len)
     size_t redir_index = get_redir_idx(lexer, len);
     if (redir_index == lexer->pos)
         redir_index = len;
-    while (lexer->pos < len && !is_separator(lexer->input[lexer->pos])
+    while (lexer->pos < len
+           && (!is_separator(lexer->input[lexer->pos])
+               || (lexer->input[lexer->pos] == '|' && lexer->pos != 0
+                   && lexer->input[lexer->pos - 1] == '>'))
            && lexer->pos < redir_index)
     {
         char current = lexer->input[lexer->pos];
-        if (current == '\'')
+        if ((current == '\'' || current == '\"')
+            && (lexer->pos == 0 || lexer->input[lexer->pos - 1] != '\\'))
         {
             quote = 1;
             int error = handle_quotes(lexer, vec, len);
@@ -158,7 +170,7 @@ static int get_substr(struct lexer *lexer, struct vec *vec, size_t len)
         else
         {
             vec_push(vec, current);
-            if ((current == '<' || current == '>')
+            if ((current == '<' || current == '>' || current == '|')
                 && lexer->input[lexer->pos + 1] == ' ')
             {
                 vec_push(vec, lexer->input[lexer->pos + 1]);

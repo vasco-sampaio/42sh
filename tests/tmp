@@ -1,4 +1,4 @@
-if true; then
-echo test | tr
-ls | head
-fi
+x="coucou test"
+for i in "$x"; do
+echo $i cc
+done

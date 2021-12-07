@@ -28,7 +28,7 @@ summary({
 
 
 # add some project-wide flags
-cflags = ['-D_GNU_SOURCE', '-D_POSIX_C_SOURCE=200809L']
+cflags = ['-D_POSIX_C_SOURCE=200809L']
 add_project_arguments(cflags, language: 'c')
 
 
@@ -39,8 +39,6 @@ subdir('src')
 # find readline, which some of the modules below link with
 cc = meson.get_compiler('c')
 readline_dep = cc.find_library('readline', required: true)
-criterion_dep = cc.find_library('criterion', required: true)
-
 
 bin = executable(
     '42sh',
@@ -48,24 +46,6 @@ bin = executable(
     include_directories: 'src',
     install: true,
     dependencies: [readline_dep],
-)
-
-lexer_tests = executable(
-    'tests',
-    #add all files needed for unit test here
-    files('src/utils/utils.c', 'src/utils/vec.c', 'src/lexer/lexer.c', 'src/lexer/token.c', 'tests/lexer_tests.c'),
-    include_directories: 'src',
-    install: true,
-    dependencies: [criterion_dep],
-)
-
-echo_tests = executable(
-    'echo_tests',
-    #add all files needed for unit test here
-    files('src/utils/vec.c', 'src/builtins/echo.c', 'tests/echo_test.c'),
-    include_directories: 'src',
-    install: true,
-    dependencies: [criterion_dep],
 )
 
 run_tests = meson.source_root() / 'tests/run_tests'

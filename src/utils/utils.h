@@ -1,6 +1,8 @@
 #ifndef UTILS_H
 #define UTILS_H
 
+#include <lexer/token.h>
+
 /**
  * \brief Options structure
  * @param p: activate the pretty-priting of the ast
@@ -19,5 +21,20 @@ struct opts
  * \brief Return if the char c is a separator
  */
 int is_separator(char c);
+
+int is_redirchar(char c);
+
+/**
+ * \brief Get the command name from a string.
+ * @param cmd: the string containing the command
+ * @param i: the index where the commands stops
+ * @return: the command, allocated
+ */
+char *getcmdname(char *cmd, int *i);
+
+/**
+ * \brief Return if the token should be printed by echo
+ */
+int stop_echo(enum token_type type);
 
 #endif /* ! UTILS_H */

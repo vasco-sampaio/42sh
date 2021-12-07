@@ -1,0 +1,1130 @@
+-   name: IF THEN CMD
+    input: |
+        if true; then
+        echo hello
+        fi
+    checks:
+    -   stdout
+    -   stderr
+    -   exitcode
+
+-   name: IF THEN ELSE
+    input: |
+        if true; then
+        echo true
+        else
+        echo false
+        fi
+    checks:
+    -   stdout
+    -   stderr
+    -   exitcode
+
+-   name: IF THEN ELIF THEN ELSE
+    input: |
+        if true; then
+        echo true
+        elif true; then
+        echo coucou
+        else
+        echo false
+        fi
+    checks:
+    -   stdout
+    -   stderr
+    -   exitcode
+
+-   name: REDIR DEV NULL
+    input: |
+        echo test >/dev/null
+    checks:
+    -   stdout
+    -   stderr
+    -   exitcode
+
+-   name: REDIR DEV NULL APPENDED
+    input: |
+        echo test2>/dev/null
+    checks:
+    -   stdout
+    -   stderr
+    -   exitcode
+
+-   name: REDIR 2 INTO DEV NULL
+    input: |
+        echo test 2>/dev/null
+    checks:
+    -   stdout
+    -   stderr
+    -   exitcode
+
+-   name: REDIR IF ECHO IN &2
+    input: |
+        if true; then
+        echo test
+        fi >&2
+    checks:
+    -   stdout
+    -   stderr
+    -   exitcode
+
+-   name: SIMPLE ECHO TR PIPE
+    input: |
+        echo hello | tr e a
+    checks:
+    -   stdout
+    -   stderr
+    -   exitcode
+
+-   name: SIMPLE &&
+    input: |
+        echo test && echo coucou
+    checks:
+    -   stdout
+    -   stderr
+    -   exitcode
+
+-   name: SIMPLE ||
+    input: |
+        echo test || echo coucou
+    checks:
+    -   stdout
+    -   stderr
+    -   exitcode
+
+-   name: IF TRUE || FALSE
+    input: |
+        if true || false; then
+        echo test
+        fi
+    checks:
+    -   stdout
+    -   stderr
+    -   exitcode
+
+-   name: IF FALSE || TRUE
+    input: |
+        if false || true; then
+        echo test
+        fi
+    checks:
+    -   stdout
+    -   stderr
+    -   exitcode
+
+-   name: IF TRUE && FALSE
+    input: |
+        if true && false; then
+        echo test
+        fi
+    checks:
+    -   stdout
+    -   stderr
+    -   exitcode
+
+-   name: IF FALSE && TRUE
+    input: |
+        if false && true; then
+        echo test
+        fi
+    checks:
+    -   stdout
+    -   stderr
+    -   exitcode
+
+-   name: IF TRUE && TRUE && FALSE
+    input: |
+        if true && true && false; then
+        echo test
+        fi
+    checks:
+    -   stdout
+    -   stderr
+    -   exitcode
+
+-   name: IF FALSE || FALSE || FALSE
+    input: |
+        if false || false || false; then
+        echo test
+        fi
+    checks:
+    -   stdout
+    -   stderr
+    -   exitcode
+
+-   name: IF FALSE || FALSE || TRUE
+    input: |
+        if false || false || true; then
+        echo test
+        fi
+    checks:
+    -   stdout
+    -   stderr
+    -   exitcode
+
+-   name: IF FALSE ||| TRUE
+    input: |
+        if false ||| true; then
+        echo test
+        fi
+    checks:
+    -   stdout
+    -   exitcode
+    -   has_stderr
+
+-   name: IF MISSING SEPARATOR
+    input: |
+        if true then
+        echo test
+        fi
+    checks:
+        -   stdout
+        -   exitcode
+        -   has_stderr
+
+-   name: IF MISSING SECOND SEPARATOR
+    input: |
+        if true; then
+        echo test fi
+    checks:
+        -   stdout
+        -   exitcode
+        -   has_stderr
+
+-   name: PIPE MISSING RIGHT
+    input: |
+        echo test |
+    checks:
+    -   stdout
+    -   exitcode
+    -   has_stderr
+
+-   name: PIPE MISSING LEFT
+    input: |
+        | tr a e
+    checks:
+    -   stdout
+    -   exitcode
+    -   has_stderr
+
+-   name: IF LS && ECHO TRUE
+    input: |
+        if ls && echo true; then
+        echo test
+        fi
+    checks:
+    -   stdout
+    -   stderr
+    -   exitcode
+
+-   name: IF FALSE || ECHO YES THEN PWD || FALSE && ECHO OUI
+    input: |
+        if false || echo yes; then
+        pwd || false && echo OUI
+        fi
+    checks:
+    -   stdout
+    -   stderr
+    -   exitcode
+
+-   name: WHILE MISSING DO
+    input: |
+        touch coucou
+        while rm coucou;
+        if true; then
+        echo oui
+        fi
+        done
+    checks:
+    -   stdout
+    -   exitcode
+    -   has_stderr
+
+-   name: WHILE MISSING DONE
+    input: |
+        touch coucou
+        while rm coucou; do
+        if true; then
+        echo oui
+        fi
+    checks:
+    -   stdout
+    -   exitcode
+    -   has_stderr
+
+-   name: FOR WITHOUT VAR EXP
+    input: |
+        for i in test coucou; do
+        echo oui
+        done
+    checks:
+    -   stdout
+    -   stderr
+    -   exitcode
+
+-   name: FOR WITH ONE VAR EXP
+    input: |
+        for i in test coucou; do
+        echo $i
+        done
+    checks:
+    -   stdout
+    -   stderr
+    -   exitcode
+
+-   name: FOR WITH TWO VAR EXP
+    input: |
+        for i in test coucou; do
+        echo $i hello $i cc
+        done
+    checks:
+    -   stdout
+    -   stderr
+    -   exitcode
+
+-   name: FOR WITH ONE {VAR} EXP
+    input: |
+        for i in test coucou; do
+        echo ${i}
+        done
+    checks:
+    -   stdout
+    -   stderr
+    -   exitcode
+
+-   name: FOR MISSING VAR
+    input: |
+        for in test coucou; do
+        echo $i hello $icc ${i} ${i}abc $iabc${i}def
+        done
+    checks:
+    -   stdout
+    -   exitcode
+    -   has_stderr
+
+-   name: FOR MISSING IN
+    input: |
+        for i test coucou; do
+        echo $i hello $icc ${i} ${i}abc $iabc${i}def
+        done
+    checks:
+    -   stdout
+    -   exitcode
+    -   has_stderr
+
+-   name: FOR MISSING DONE
+    input: |
+        for i test coucou; do
+        echo $i hello $icc ${i} ${i}abc $iabc${i}def
+    checks:
+    -   stdout
+    -   exitcode
+    -   has_stderr
+
+-   name: FOR HARD
+    input: |
+        for i in test coucou; do
+        echo $i hello $icc ${i} ${i}abc $iabc${i}def
+        done
+    checks:
+    -   stdout
+    -   stderr
+    -   exitcode
+
+-   name: SIMPLE LEFT REDIR
+    input: |
+        echo Hello > file
+        cat file
+        rm file
+    checks:
+    -   stdout
+    -   stderr
+    -   exitcode
+
+-   name: SIMPLE LEFT COMMAND STDERR REDIR
+    input: |
+        ls unknown 2>file
+        cat file
+        rm file
+    checks:
+    -   stdout
+    -   stderr
+    -   exitcode
+
+-   name: SIMPLE REDIRECTION WITH CANCEL
+    input: |
+        echo test > file; echo world
+        cat file
+        rm file
+    checks:
+    -   stdout
+    -   stderr
+    -   exitcode
+
+-   name: DOUBLE LEFT REDIR
+    input: |
+        echo Hello > file > file2
+        cat file2
+        rm file
+        rm file2
+    checks:
+    -   stdout
+    -   stderr
+    -   exitcode
+
+-   name: SIMPLE RIGHT REDIR
+    input: |
+        echo Hello > file
+        cat < file
+        rm file
+    checks:
+    -   stdout
+    -   stderr
+    -   exitcode
+
+-   name: SIMPLE RIGHT REDIR
+    input: |
+        echo Hello > file
+        cat < file
+        rm file
+    checks:
+    -   stdout
+    -   stderr
+    -   exitcode
+
+-   name: SIMPLE LEFT REDIR SPECIFIED FD
+    input: |
+        echo Hello 1> file
+        cat < file
+        rm file
+    checks:
+    -   stdout
+    -   stderr
+    -   exitcode
+
+-   name: REDIRECTION ERROR MISSING RIGHT
+    input: |
+        echo Hello >
+    checks:
+    -   stdout
+    -   exitcode
+    -   has_stderr
+
+-   name: REDIRECTION ERROR INVALID REDIR
+    input: |
+        echo Hello >>>file
+    checks:
+    -   stdout
+    -   exitcode
+    -   has_stderr
+
+-   name: REDIRECTION AMPERSAND LEFT
+    input: |
+        echo Hello >&2
+    checks:
+    -   stdout
+    -   exitcode
+    -   has_stderr
+
+-   name: REDIRECTION AMPERSAND LEFT INVALID FD
+    input: |
+        echo Hello >&42
+    checks:
+    -   stdout
+    -   exitcode
+    -   has_stderr
+
+-   name: REDIRECTION AMPERSAND INVALID FD
+    input: |
+        echo Hello >&42
+    checks:
+    -   stdout
+    -   exitcode
+    -   has_stderr
+
+-   name: APPEND LEFT REDIR
+    input: |
+        echo Hello > file
+        echo World >> file
+        cat file
+        rm file
+    checks:
+    -   stdout
+    -   stderr
+    -   exitcode
+
+-   name: PIPE REDIR
+    input: |
+        echo test >| file
+        cat file
+        rm file
+    checks:
+    -   stdout
+    -   stderr
+    -   exitcode
+
+-   name: PIPE REDIR STICKED
+    input: |
+        echo test>| file
+        cat file
+        rm file
+    checks:
+    -   stdout
+    -   stderr
+    -   exitcode
+
+-   name: REDIR <> TO STDOUT
+    input: |
+        echo test <>1
+    checks:
+    -   stdout
+    -   stderr
+    -   exitcode
+
+-   name: SIMPLE VAR
+    input: |
+        a=b
+        echo $a
+    checks:
+    -   stdout
+    -   stderr
+    -   exitcode
+
+-   name: SIMPLE REASSIGN VAR
+    input: |
+        a=b
+        a=c
+        echo $a
+    checks:
+    -   stdout
+    -   stderr
+    -   exitcode
+
+-   name: VAR IN FOR
+    input: |
+        a=b
+        for i in test coucou; do
+        echo $i $a
+        done
+    checks:
+    -   stdout
+    -   stderr
+    -   exitcode
+
+-   name: TWO VARS
+    input: |
+        abc=coucou
+        test=gg
+        echo $abc$test
+    checks:
+    -   stdout
+    -   stderr
+    -   exitcode
+
+-   name: SIMPLE WHILE
+    input: |
+        a=b
+        while [ $a = b ]; do
+        echo test
+        a=c
+        done
+    checks:
+    -   stdout
+    -   stderr
+    -   exitcode
+
+-   name: SIMPLE UNTIL
+    input: |
+        a=c
+        until [ $a = b ]; do
+        a=b
+        echo test
+        done
+    checks:
+    -   stdout
+    -   stderr
+    -   exitcode
+
+-   name: IF IN WHILE
+    input: |
+        a=b
+        while [ $a = b ]; do
+        if true; then
+        a=c
+        echo test
+        fi
+        done
+    checks:
+    -   stdout
+    -   stderr
+    -   exitcode
+
+-   name: SIMPLE IN DOUBLE QUOTES
+    input: |
+        a=b
+        echo "'"$a"'"
+    checks:
+    -   stdout
+    -   stderr
+    -   exitcode
+
+-   name: DOUBLE IN SIMPLE QUOTES
+    input: |
+        a=b
+        echo '"$a"'
+    checks:
+    -   stdout
+    -   stderr
+    -   exitcode
+
+-   name: ESCAPE QUOTE
+    input: |
+        echo \"
+    checks:
+    -   stdout
+    -   stderr
+    -   exitcode
+
+-   name: ESCAPE QUOTE THEN ERROR
+    input: |
+        echo \""
+    checks:
+    -   stdout
+    -   exitcode
+    -   has_stderr
+
+-   name: ESCAPE \n
+    input: |
+        echo \n
+    checks:
+    -   stdout
+    -   stderr
+    -   exitcode
+
+-   name: ESCAPE \\
+    input: |
+        echo \\
+    checks:
+    -   stdout
+    -   stderr
+    -   exitcode
+
+-   name: WRONG ASSIGN
+    input: |
+        42=test
+    checks:
+    -   stdout
+    -   exitcode
+    -   has_stderr
+
+-   name: WRONG ASSIGN 2
+    input: |
+        2=test
+    checks:
+    -   stdout
+    -   exitcode
+    -   has_stderr
+
+-   name: WRONG ASSIGN 3
+    input: |
+        $=test
+    checks:
+    -   stdout
+    -   exitcode
+    -   has_stderr
+
+-   name: WRONG ASSIGN 4
+    input: |
+        $a=test
+    checks:
+    -   stdout
+    -   exitcode
+    -   has_stderr
+
+-   name: EMPTY VAR
+    input: |
+        a=b
+        echo $a $gg
+    checks:
+    -   stdout
+    -   stderr
+    -   exitcode
+
+-   name: CHAIN SUB
+    input: |
+        b=c
+        a=$b
+        echo $a
+    checks:
+    -   stdout
+    -   stderr
+    -   exitcode
+
+-   name: SIMPLE EXIT
+    input: |
+        exit 42
+    checks:
+        -   stdout
+        -   exitcode
+
+-   name: SIMPLE EXIT INVALID
+    input: |
+        exit lol
+    checks:
+        -   stdout
+        -   exitcode
+        -   has_stderr
+
+-   name: EXIT WITH ECHO AT END
+    input: |
+        exit 42; echo test
+    checks:
+        -   stdout
+        -   exitcode
+
+-   name: EXIT WITH ECHO AT BEGINING
+    input: |
+        echo test; exit 42
+    checks:
+        -   stdout
+        -   exitcode
+
+-   name: EXIT WITH IF 1
+    input: |
+        if true; then echo true
+        else exit 42
+        fi
+    checks:
+        -   stdout
+        -   exitcode
+
+-   name: EXIT WITH IF 2
+    input: |
+        if exit 12; then
+        echo never
+        fi
+    checks:
+        -   stdout
+        -   exitcode
+
+-   name: EXIT WITH IF ERROR
+    input: |
+        if exit abc; then echo here
+        fi
+    checks:
+        -   stdout
+        -   exitcode
+        -   has_stderr
+
+-   name: EXIT IN THEN
+    input: |
+        if echo lol; then exit 42
+        fi
+    checks:
+        -   stdout
+        -   exitcode
+
+-   name: EXIT IN ELSE
+    input: |
+        if echo lol; then echo here
+        else exit 42
+        fi
+    checks:
+        -   stdout
+        -   exitcode
+
+-   name: EXIT NOTHING
+    input: |
+        exit
+    checks:
+        -   stdout
+        -   exitcode
+
+-   name: ECHO EXIT
+    input: |
+        echo exit 42
+    checks:
+        -   stdout
+        -   exitcode
+
+-   name: ECHO IF
+    input: |
+        echo if
+    checks:
+        -   stdout
+        -   exitcode
+
+-   name: ECHO ELSE
+    input: |
+        echo else
+    checks:
+        -   stdout
+        -   exitcode
+
+-   name: ECHO KEYWORD
+    input: |
+        echo while
+    checks:
+        -   stdout
+        -   exitcode
+
+-   name: ECHO BAD OPTION
+    input: |
+        echo -t
+    checks:
+        -   stdout
+        -   exitcode
+
+-   name: SIMPLE CD
+    input: |
+        cd
+        pwd
+    checks:
+        -   stdout
+        -   exitcode
+        -   stderr
+
+-   name: CD ..
+    input: |
+        cd ..
+        pwd
+    checks:
+        -   stdout
+        -   exitcode
+        -   stderr
+
+-   name: INVALID CD
+    input: |
+        cd unkown
+    checks:
+        -   stdout
+        -   exitcode
+        -   has_stderr
+
+-   name: BAD IF NO CONDITION
+    input: |
+        if ;then echo test
+        fi
+    checks:
+        -   stdout
+        -   exitcode
+        -   has_stderr
+
+-   name: BAD IF NO BODY
+    input: |
+        if true; then
+        fi
+    checks:
+        -   stdout
+        -   exitcode
+        -   has_stderr
+
+-   name: IF IN IF
+    input: |
+        if true; then
+        if false || true; then
+        echo working?
+        else
+        echo not working
+        fi
+        else
+        echo didnt enter first
+        fi
+    checks:
+        -   stdout
+        -   exitcode
+        -   stderr
+
+-   name: IF IN IF ENTERING ELSE
+    input: |
+        if true; then
+            if false || false; then
+            echo not working
+            elif true && false; then
+            echo hi
+            else
+            echo working correctly
+            fi
+        else
+        echo didnt enter first
+        fi
+    checks:
+        -   stdout
+        -   exitcode
+        -   stderr
+
+-   name: BAD IF ELIF WITHOUT THEN
+    input: |
+        if false; then echo then
+        elif true;
+        echo elif
+        fi
+    checks:
+        -   stdout
+        -   exitcode
+        -   has_stderr
+
+-   name: ECHO $1
+    input: |
+        echo $1
+    checks:
+        -   stdout
+        -   exitcode
+        -   stderr
+
+-   name: FOR EXPAND VAR
+    input: |
+        x="coucou test"
+        for i in "$x"; do
+        echo $i cc
+        done
+    checks:
+        -   stdout
+        -   exitcode
+        -   stderr
+
+-   name: SIMPLE EXPORT
+    input: |
+        export a=42
+        echo "$a"
+    checks:
+        -   stdout
+        -   exitcode
+        -   stderr
+
+-   name: MULTIPLE SEMICOLON EXPORT
+    input: |
+        export a=42; b=78; c=abc
+        echo "$a"
+        echo "$b"
+        echo "$c"
+    checks:
+        -   stdout
+        -   exitcode
+        -   stderr
+
+-   name: MULTIPLE SPACE EXPORT
+    input: |
+        export a=42 b=78 c=abc
+        echo "$a"
+        echo "$b"
+        echo "$c"
+    checks:
+        -   stdout
+        -   exitcode
+        -   stderr
+
+-   name: MULTIPLE SPACE AND SEMIC EXPORT
+    input: |
+        export a=42; b=78 c=abc
+        echo "$a"
+        echo "$b"
+        echo "$c"
+    checks:
+        -   stdout
+        -   exitcode
+        -   stderr
+
+-   name: EXPORT WITHOUT ASSIGN
+    input: |
+        export a
+        echo "$a"
+    checks:
+        -   stdout
+        -   exitcode
+        -   stderr
+
+-   name: BAD EXPORT INVALID NAME
+    input: |
+        export 4p
+    checks:
+        -   stdout
+        -   exitcode
+        -   has_stderr
+
+-   name: BAD EXPORT INVALID SPACE 1
+    input: |
+        export a= 78
+    checks:
+        -   stdout
+        -   exitcode
+        -   has_stderr
+
+-   name: BAD EXPORT INVALID SPACE 2
+    input: |
+        export a =8
+    checks:
+        -   stdout
+        -   exitcode
+        -   has_stderr
+
+-   name: DOT SCL
+    input: |
+        . ./test_files/test_dot1
+        echo "$foo" "$bar"
+    checks:
+        -   stdout
+        -   exitcode
+        -   stderr
+
+-   name: DOT NOT FOUND GLOBAL
+    input: |
+        . fdsf
+        echo test
+    checks:
+        -   stdout
+        -   exitcode
+        -   has_stderr
+
+-   name: DOT NOT FOUND LOCAL
+    input: |
+        echo hello
+        . ./fdsf
+        echo world
+    checks:
+        -   stdout
+        -   exitcode
+        -   has_stderr
+
+-   name: DOT WITH CMD FAIL BEFORE
+    input: |
+        cd grijfguog
+        . ./fdsf
+        echo world
+    checks:
+        -   stdout
+        -   exitcode
+        -   has_stderr
+
+-   name: DOT WITH VARIABLE
+    input: |
+        . ./test_files/test_dot2
+        echo "$a"
+        echo "$b"
+    checks:
+        -   stdout
+        -   exitcode
+        -   stderr
+
+-   name: DOT WITH WRONG FILE
+    input: |
+        . ./test_files/test_dot3
+        echo "le monde"
+    checks:
+        -   stdout
+        -   exitcode
+        -   has_stderr
+
+-   name: ASCII HOUSE
+    input: |
+        echo '  /\'
+        echo ' /  \'
+        echo '/____\  ''`'"'"'`'
+        echo '|    | ''`'"'''"'`'
+        echo '|    |  ''`''|''`'
+        echo '|_/\_|___|__'
+    checks:
+        -   stdout
+        -   exitcode
+        -   stderr
+
+-   name: VAR REPLACE SPACES QUOTES
+    input: |
+        a=
+        echo cc "$a" cc
+    checks:
+        -   stdout
+        -   exitcode
+        -   stderr
+
+-   name: VAR REPLACE SPACES
+    input: |
+        a=
+        echo cc $a cc
+    checks:
+        -   stdout
+        -   exitcode
+        -   stderr
+
+-   name: $@ REPLACE SPACES
+    input: |
+        echo cc $@ cc
+    checks:
+        -   stdout
+        -   exitcode
+        -   stderr
+
+-   name: $@ REPLACE SPACES QUOTES
+    input: |
+        echo cc "$@" cc
+    checks:
+        -   stdout
+        -   exitcode
+        -   stderr
+
+-   name: TOO MUCH TABULATIONS OR SPACES
+    input: |
+        if      echo    hello;              then
+        echo hahahahah               it works                               
+        else          
+        echo                    maybe  not              
+        fi                        
+    checks:
+        -   stdout
+        -   exitcode
+        -   stderr
+
+-   name: INVALID COMMAND
+    input: |
+        why are you working?
+    checks:
+        -   stdout
+        -   exitcode
+        -   has_stderr
+
+-   name: VALID WEIRD ECHO
+    input: |
+        echo this is
+        echo th_eT_EST__        
+    checks:
+        -   stdout
+        -   exitcode
+        -   stderr
+
+-   name: IF ELIF WITHOUT THEN
+    input: |
+        if echo hello && false; then
+            echo nope
+        elif echo hi
+            echo why
+        else
+            YOPPEEE
+        fi
+    checks:
+        -   stdout
+        -   exitcode
+        -   has_stderr
+
+-   name: VALID ECHO NO EXIT
+    input: |
+        echo entering here && echo also passing by || exit 33 && echo nope
+    checks:
+        -   stdout
+        -   exitcode
+        -   stderr
+
+-   name: ECHO E OPT RANDOM DASH
+    input: |
+        echo -e - ---e -e yop -e--e --n -n
+    checks:
+        -   stdout
+        -   exitcode
+        -   stderr
+
+-   name: ECHO UNVALID OPT RANDOM DASH
+    input: |
+        echo -o -e ---e -e yop -e--e --n -n
+    checks:
+        -   stdout
+        -   exitcode
+        -   stderr

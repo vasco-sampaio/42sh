@@ -10,6 +10,11 @@ struct ast *create_ast(enum ast_type type)
 {
     struct ast *new = zalloc(sizeof(struct ast));
     new->type = type;
+    new->size = 0;
+    new->capacity = 5;
+    new->list = zalloc(sizeof(char *) * new->capacity);
+    new->var = NULL;
+    new->replace = NULL;
     new->left = NULL;
     new->right = NULL;
     new->val = NULL;
@@ -27,10 +32,27 @@ void ast_free(struct ast *ast)
         free(ast->val->data);
         free(ast->val);
     }
+    for (size_t i = 0; i < ast->size; ++i)
+        free(ast->list[i]);
+    free(ast->list);
+    if (ast->var)
+        free(ast->var);
+    if (ast->replace)
+        free(ast->replace);
     ast_free(ast->cond);
     ast_free(ast->left);
     ast_free(ast->right);
     free(ast);
+}
+
+void add_to_list(struct ast *ast, char *str)
+{
+    if (ast->size == ast->capacity)
+    {
+        ast->capacity *= 2;
+        ast->list = xrealloc(ast->list, ast->capacity);
+    }
+    ast->list[ast->size++] = strdup(str);
 }
 
 static void pretty_rec(struct ast *ast)
@@ -39,6 +61,7 @@ static void pretty_rec(struct ast *ast)
         return;
     if (ast->type == AST_ROOT)
     {
+        printf("root ");
         pretty_rec(ast->left);
         pretty_rec(ast->right);
     }
@@ -75,6 +98,7 @@ static void pretty_rec(struct ast *ast)
     else if (ast->type == AST_REDIR)
     {
         pretty_rec(ast->left);
+        pretty_rec(ast->right);
         printf("redir %s ", ast->val->data);
     }
     else if (ast->type == AST_PIPE)
@@ -91,6 +115,38 @@ static void pretty_rec(struct ast *ast)
         else
             printf("&& ");
         pretty_rec(ast->right);
+    }
+    else if (ast->type == AST_NEG)
+    {
+        printf("! ");
+        pretty_rec(ast->left);
+    }
+    else if (ast->type == AST_WHILE || ast->type == AST_UNTIL)
+    {
+        if (ast->type == AST_WHILE)
+            printf("while { ");
+        else
+            printf("until { ");
+        pretty_rec(ast->cond);
+        printf("}; do {");
+        pretty_rec(ast->left);
+        pretty_rec(ast->right);
+        printf("}; done ");
+    }
+    else if (ast->type == AST_FOR)
+    {
+        printf("for { %s ", ast->val->data);
+        if (ast->size != 0)
+        {
+            printf("in ");
+            for (size_t i = 0; i < ast->size; ++i)
+                printf("%s ", ast->list[i]);
+
+            printf("} ");
+        }
+        printf("do ");
+        pretty_rec(ast->left);
+        printf("done ");
     }
     else
         printf("pretty-print : Unknown node type\n");

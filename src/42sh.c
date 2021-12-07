@@ -5,9 +5,66 @@
 #include <parser/parser.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <time.h>
 #include <unistd.h>
 #include <utils/utils.h>
 #include <utils/vec.h>
+
+struct list *vars;
+
+static void setinitvars(int argc, char **argv)
+{
+    char *value = my_itoa(argc);
+    char *var = build_var("#", value);
+    var_assign_special(var);
+    free(var);
+    free(value);
+
+    int len = 0;
+    for (int i = 0; i < argc - 1; i++)
+    {
+        len += strlen(argv[i + 1]);
+    }
+    value = zalloc(sizeof(char) * (len * 2 + 3));
+    if (argc > 1)
+    {
+        for (int i = 1; i < argc - 1; i++)
+        {
+            strcat(value, " ");
+            strcat(value, argv[i + 1]);
+        }
+    }
+    var = build_var("@", value);
+    var_assign_special(var);
+    free(var);
+    free(value);
+
+    value = zalloc(sizeof(char) * (len * 2 + 3));
+    if (argc > 1)
+    {
+        value[0] = '\"';
+        strcat(value, argv[1]);
+        for (int i = 1; i < argc - 1; i++)
+        {
+            strcat(value, " ");
+            strcat(value, argv[i + 1]);
+        }
+        strcat(value, "\"");
+    }
+    var = build_var("*", value);
+    var_assign_special(var);
+    free(value);
+    free(var);
+
+    for (int i = 1; i < argc; i++)
+    {
+        char *value = my_itoa(i);
+        char *var = build_var(value, argv[i]);
+        var_assign_special(var);
+        free(var);
+        free(value);
+    }
+}
 
 static struct opts *parse_opts(int argc, char **argv)
 {
@@ -96,7 +153,13 @@ enum error read_print_loop(struct cstream *cs, struct vec *line,
 
             // If the end of file was reached, stop right there
             if (c == EOF)
+            {
+                final = vec_concat(final, line);
+                final->size--;
+                vec_push(final, '\0');
+                vec_reset(line);
                 break;
+            }
 
             // If a newline was met, print the line
             if (c == '\n')
@@ -131,7 +194,16 @@ enum error read_print_loop(struct cstream *cs, struct vec *line,
     }
     if (opts->p)
         pretty_print(parser->ast);
-    int eval = ast_eval(parser->ast);
+    set_special_vars();
+    int return_code = 0;
+    int eval = ast_eval(parser->ast, &return_code);
+    struct list *cur = vars;
+    while (cur)
+    {
+        struct list *tmp = cur->next;
+        free_var(cur);
+        cur = tmp;
+    }
     vec_destroy(final);
     free(final);
     return eval;
@@ -139,8 +211,11 @@ enum error read_print_loop(struct cstream *cs, struct vec *line,
 
 int main(int argc, char *argv[])
 {
+    setinitvars(argc, argv);
+
     int rc = 0;
 
+    srand(time(NULL));
     // Parse command line arguments and get an input stream
     struct opts *opts = NULL;
     struct cstream *cs = parse_args(argc, argv, &opts);

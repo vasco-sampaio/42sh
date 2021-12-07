@@ -15,7 +15,11 @@ gdb -arg builddir/42sh -c 'echo test'
 # Running tests
 
 ```sh
-tests/run_tests builddir/42sh
+cd
+python -m venv env/
+source env/bin/activate
+go to 42sh folder
+pip install -r tests/requirements.txt
 ```
 
 # Building documentation

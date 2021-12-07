@@ -1,3 +1,0 @@
-if true && true && false; then
-echo test
-fi

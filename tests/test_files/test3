@@ -1,7 +1,0 @@
-if true; then
-echo true
-elif true; then
-echo coucou
-else
-echo false
-fi

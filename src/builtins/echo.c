@@ -77,6 +77,7 @@ int echo(char *args)
     else
         printf("%s", vec_cstring(vector));
 
+    fflush(stdout);
     free(options);
     vec_destroy(vector);
     free(vector);

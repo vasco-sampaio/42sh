@@ -1,0 +1,3 @@
+3<>test24.txt
+echo Thibault >&3
+cat test24.txt

@@ -1,6 +1,7 @@
 #include "error.h"
 
 #include <err.h>
+#include <stdarg.h>
 
 enum error error_warn(enum error err, const char *fmt, ...)
 {

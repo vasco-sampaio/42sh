@@ -1,0 +1,11 @@
+if true; then
+if false || false; then
+echo not working
+elif true && false; then
+exit 42
+else
+echo working
+fi
+else
+echo didnt enter first
+fi
