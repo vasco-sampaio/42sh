@@ -1,6 +1,0 @@
-for i in h e l l o; do
-for j in cc dd ff; do
-echo $i
-continue 2
-done
-done
