@@ -3,4 +3,6 @@ all_sources += files(
     'redirection.c',
     'ast_eval.c',
     'vars.c',
+    'subshell.c',
+    'functions.c'
 )

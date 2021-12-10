@@ -1113,17 +1113,697 @@
         -   exitcode
         -   stderr
 
--   name: ECHO E OPT RANDOM DASH
+-   name: BREAK NOT IN WHILE
     input: |
-        echo -e - ---e -e yop -e--e --n -n
+        echo test
+        break
+        echo coucou
     checks:
         -   stdout
         -   exitcode
         -   stderr
 
--   name: ECHO UNVALID OPT RANDOM DASH
+-   name: WHILE BREAK AT FIRST
     input: |
-        echo -o -e ---e -e yop -e--e --n -n
+        while true; do
+        echo test
+        break
+        done
+    checks:
+        -   stdout
+        -   exitcode
+        -   stderr
+
+-   name: UNTIL BREAK AT FIRST
+    input: |
+        until false; do
+        echo test
+        break
+        done
+    checks:
+        -   stdout
+        -   exitcode
+        -   stderr
+
+-   name: FOR BREAK AT FIRST
+    input: |
+        for i in false coucou; do
+        echo $i
+        break
+        done
+    checks:
+        -   stdout
+        -   exitcode
+        -   stderr
+
+-   name: WHILE IN WHILE BREAK
+    input: |
+        a=b
+        while [ $a = b ]; do
+        while true; do
+        echo coucou
+        break
+        done
+        a=c
+        echo test
+        done
+    checks:
+        -   stdout
+        -   exitcode
+        -   stderr
+
+-   name: WHILE IN WHILE BREAK 2
+    input: |
+        a=b
+        while [ $a = b ]; do
+        while true; do
+        echo coucou
+        break 2
+        done
+        a=c
+        echo test
+        done
+    checks:
+        -   stdout
+        -   exitcode
+        -   stderr
+
+-   name: WHILE IN WHILE BREAK 1000
+    input: |
+        a=b
+        while [ $a = b ]; do
+        while true; do
+        echo coucou
+        break 1000
+        done
+        a=c
+        echo test
+        done
+        a=d
+        while [ $a = d ]; do
+        echo oui
+        a=e
+        done
+    checks:
+        -   stdout
+        -   exitcode
+        -   stderr
+
+-   name: WHILE IN WHILE BREAK 1000
+    input: |
+        a=b
+        while [ $a = b ]; do
+        while true; do
+        echo coucou
+        break 1000
+        done
+        a=c
+        echo test
+        done
+        a=d
+        while [ $a = d ]; do
+        echo oui
+        a=e
+        done
+    checks:
+        -   stdout
+        -   exitcode
+        -   stderr
+
+-   name: FOR BREAK
+    input: |
+        for i in test coucou; do
+        echo $i
+        break
+        done
+    checks:
+        -   stdout
+        -   exitcode
+        -   stderr
+
+-   name: FOR BREAK;
+    input: |
+        for i in test coucou; do
+        echo $i
+        break;
+        done
+    checks:
+        -   stdout
+        -   exitcode
+        -   stderr
+
+-   name: FOR BREAK AS VAR
+    input: |
+        for break in test coucou; do
+        echo $break
+        done
+    checks:
+        -   stdout
+        -   exitcode
+        -   stderr
+
+-   name: FOR BREAK AS VAR
+    input: |
+        for i in break test; do
+        echo $i
+        done
+    checks:
+        -   stdout
+        -   exitcode
+        -   stderr
+
+-   name: FOR BREAK 2
+    input: |
+        for i in coucou test; do
+        echo $i
+        break 2
+        done
+    checks:
+        -   stdout
+        -   exitcode
+        -   stderr
+
+-   name: FOR IN FOR BREAK 2
+    input: |
+        for i in coucou test; do
+        for j in la le li; do
+        echo $j
+        break 2
+        done
+        echo $i
+        done
+    checks:
+        -   stdout
+        -   exitcode
+        -   stderr
+
+-   name: VALID SUBSHELL
+    input: |
+        echo parent
+        (echo child)
+    checks:
+        -   stdout
+        -   exitcode
+        -   stderr
+
+-   name: INVALID SUBSUBSHELL
+    input: |
+        echo parent
+        (echo child (echo child2))
+    checks:
+        -   stdout
+        -   exitcode
+        -   has_stderr
+
+-   name: INVALID SUBSHELL
+    input: |
+        echo parent
+        (echo child
+    checks:
+        -   stdout
+        -   exitcode
+        -   has_stderr
+
+-   name: UNSET DEFAULT
+    input: |
+        export a=7
+        echo $a
+        unset a
+        echo $a
+    checks:
+        -   stdout
+        -   exitcode
+        -   stderr
+
+-   name: UNSET SEVERAL VARS
+    input: |
+        export a=7 b=2
+        echo $a $b
+        unset a b
+        echo $a $b
+    checks:
+        -   stdout
+        -   exitcode
+        -   stderr
+
+-   name: UNSET FUNC VAR
+    input: |
+        export func=10
+        echo $func
+        unset -fv func
+        echo $func
+    checks:
+        -   stdout
+        -   exitcode
+        -   stderr
+
+-   name: UNSET FUNC
+    input: |
+        unset -f func
+    checks:
+        -   stdout
+        -   exitcode
+        -   stderr
+
+-   name: UNSET INVALID
+    input: |
+        unset 1
+    checks:
+        -   stdout
+        -   exitcode
+        -   has_stderr
+
+
+-   name: SIMPLE IN SIMPLE QUOTE ESCAPE
+    input: |
+        echo '\'
+    checks:
+        -   stdout
+        -   exitcode
+        -   stderr
+
+-   name: SIMPLE IN DOUBLE QUOTE ESCAPE
+    input: |
+        echo "\'"
+    checks:
+        -   stdout
+        -   exitcode
+        -   stderr
+
+-   name: SIMPLE IN DOUBLE QUOTE
+    input: |
+        echo "'"
+    checks:
+        -   stdout
+        -   exitcode
+        -   stderr
+
+-   name: DOUBLE IN SIMPLE QUOTE
+    input: |
+        echo '"'
+    checks:
+        -   stdout
+        -   exitcode
+        -   stderr
+
+-   name: TWO ESCAPE THEN ERROR
+    input: |
+        echo \"\''
+    checks:
+        -   stdout
+        -   exitcode
+        -   has_stderr
+
+-   name: QUOTE ESCAPE HARD 1
+    input: |
+        echo "\"\\'\"'"
+    checks:
+        -   stdout
+        -   exitcode
+        -   stderr
+
+-   name: QUOTE ESCAPE HARD 2
+    input: |
+        echo \"\\'\"
+    checks:
+        -   stdout
+        -   exitcode
+        -   has_stderr
+
+-   name: CONTINUE USELESS
+    input: |
+        echo coucou
+        continue
+        echo test
+    checks:
+        -   stdout
+        -   exitcode
+        -   stderr
+
+-   name: CONTINUE 5 USELESS
+    input: |
+        echo coucou
+        continue 5
+        echo test
+    checks:
+        -   stdout
+        -   exitcode
+        -   stderr
+
+-   name: CONTINUE IN WHILE
+    input: |
+        a=b
+        while [ $a = b ]; do
+        echo coucou
+        a=c
+        continue
+        done
+    checks:
+        -   stdout
+        -   exitcode
+        -   stderr
+
+-   name: CONTINUE 2 IN WHILE
+    input: |
+        a=b
+        while [ $a = b ]; do
+        echo coucou
+        a=c
+        continue 2
+        done
+    checks:
+        -   stdout
+        -   exitcode
+        -   stderr
+
+-   name: CONTINUE 0 IN WHILE
+    input: |
+        a=b
+        while [ $a = b ]; do
+        echo coucou
+        a=c
+        continue 0
+        done
+    checks:
+        -   stdout
+        -   exitcode
+        -   has_stderr
+
+-   name: BREAK 0 IN WHILE
+    input: |
+        a=b
+        while [ $a = b ]; do
+        echo coucou
+        a=c
+        break 0
+        done
+    checks:
+        -   stdout
+        -   exitcode
+        -   has_stderr
+
+-   name: CONTINUE IN UNTIL
+    input: |
+        a=b
+        until [ $a = c ]; do
+        echo coucou
+        a=c
+        continue
+        done
+    checks:
+        -   stdout
+        -   exitcode
+        -   stderr
+
+-   name: CONTINUE IN FOR
+    input: |
+        for i in test coucou; do
+        echo $i
+        continue
+        echo cc
+        done
+    checks:
+        -   stdout
+        -   exitcode
+        -   stderr
+
+-   name: CONTINUE 2 IN FOR FOR
+    input: |
+        for j in ll pp jj; do
+        for i in test coucou; do
+        echo $i
+        continue 2
+        echo cc
+        done
+        echo rr
+        done
+    checks:
+        -   stdout
+        -   exitcode
+        -   stderr
+
+-   name: CONTINUE 2 IN WHILE WHILE
+    input: |
+        a=b
+        g=h
+        while [ $g = h ]; do
+        while [ $a = b ]; do
+        echo coucou
+        a=c
+        continue 2
+        done
+        echo rr
+        g=l
+        done
+    checks:
+        -   stdout
+        -   exitcode
+        -   stderr
+
+-   name: CONTINUE IN WHILE WHILE
+    input: |
+        a=b
+        g=h
+        while [ $g = h ]; do
+        while [ $a = b ]; do
+        echo coucou
+        a=c
+        continue
+        done
+        echo rr
+        g=l
+        done
+    checks:
+        -   stdout
+        -   exitcode
+        -   stderr
+
+-   name: CONTINUE IN FOR FOR
+    input: |
+        for j in ll pp jj; do
+        for i in test coucou; do
+        echo $i
+        continue 2
+        echo cc
+        done
+        echo rr
+        done
+    checks:
+        -   stdout
+        -   exitcode
+        -   stderr
+
+-   name: CONTINUE BREAK IN FOR FOR
+    input: |
+        for j in ll pp jj; do
+        for i in test coucou; do
+        echo $i
+        continue 2
+        break 2
+        echo cc
+        done
+        echo rr
+        done
+    checks:
+        -   stdout
+        -   exitcode
+        -   stderr
+
+-   name: BREAK 2 IN FOR CONTINUE FOR
+    input: |
+        for j in ll pp jj; do
+        for i in test coucou; do
+        echo $i
+        break 2
+        echo cc
+        done
+        continue
+        echo rr
+        done
+    checks:
+        -   stdout
+        -   exitcode
+        -   stderr
+
+-   name: CMD SUB ERROR
+    input: |
+        echo `echo test
+    checks:
+        -   stdout
+        -   exitcode
+        -   has_stderr
+
+-   name: CMD SUB 1
+    input: |
+        echo `echo test`
+    checks:
+        -   stdout
+        -   exitcode
+        -   stderr
+
+-   name: CMD SUB 2
+    input: |
+        echo `echo `echo test``
+    checks:
+        -   stdout
+        -   exitcode
+        -   stderr
+
+-   name: CMD SUB 3
+    input: |
+        echo `echo `echo `echo test```
+    checks:
+        -   stdout
+        -   exitcode
+        -   stderr
+
+-   name: CMD SUB 4
+    input: |
+        echo `cd `echo `echo test```
+    checks:
+        -   stdout
+        -   exitcode
+        -   stderr
+
+-   name: CMD SUB 5
+    input: |
+        echo `echo `echo `ls test```
+    checks:
+        -   stdout
+        -   exitcode
+        -   stderr
+
+-   name: CMD SUB 6
+    input: |
+        echo $(echo test
+    checks:
+        -   stdout
+        -   exitcode
+        -   has_stderr
+
+-   name: CMD SUB 7
+    input: |
+        echo $(echo test)
+    checks:
+        -   stdout
+        -   exitcode
+        -   stderr
+
+-   name: CMD SUB 8
+    input: |
+        echo $(printf oui)
+    checks:
+        -   stdout
+        -   exitcode
+        -   stderr
+
+-   name: CMD SUB 9
+    input: |
+        echo $(echo $(echo oui))
+    checks:
+        -   stdout
+        -   exitcode
+        -   stderr
+
+-   name: CMD SUB 10
+    input: |
+        echo \` `echo test`
+    checks:
+        -   stdout
+        -   exitcode
+        -   stderr
+
+-   name: CMD SUB 11
+    input: |
+        echo \$ $(echo test)
+    checks:
+        -   stdout
+        -   exitcode
+        -   stderr
+
+-   name: CMDBLOCK SEMICOLON
+    input: |
+        { echo hello; echo hello; } | tr o a
+    checks:
+        -   stdout
+        -   exitcode
+        -   stderr
+
+-   name:  CMDBLOCK NEWLINE
+    input: |
+        {
+            echo hello
+            echo hello
+        } | tr o a
+    checks:
+        -   stdout
+        -   exitcode
+        -   stderr
+
+-   name: DOUBLE CMDBLOCK
+    input: |
+        {
+            echo hello
+            {
+                echo World
+            }
+        } | tr o a
+    checks:
+        -   stdout
+        -   exitcode
+        -   stderr
+
+-   name: INVALID CMDBLOCK 1
+    input: |
+        {
+            echo hello
+            {
+                echo World
+            }
+         | tr o a
+    checks:
+        -   stdout
+        -   exitcode
+        -   has_stderr
+
+-   name: INVALID CMDBLOCK 2
+    input: |
+        {echo hello}
+    checks:
+        -   stdout
+        -   exitcode
+        -   has_stderr
+
+-   name: INVALID CMDBLOCK 3
+    input: |
+        {echo hello
+        }
+    checks:
+        -   stdout
+        -   exitcode
+        -   has_stderr
+
+-   name: INVALID CMDBLOCK 4
+    input: |
+        { echo hello echo hello}
+    checks:
+        -   stdout
+        -   exitcode
+        -   has_stderr
+
+-   name: INVALID CMDBLOCK 5
+    input: |
+        { echo hello echo hello }
+        { echo world echo world }
+    checks:
+        -   stdout
+        -   exitcode
+        -   has_stderr
+
+-   name: VALID CMDBLOCK MULTILINES
+    input: |
+        { echo hello echo hello; }
+        { echo world echo world; }
     checks:
         -   stdout
         -   exitcode

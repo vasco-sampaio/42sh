@@ -12,7 +12,7 @@
 #define SIMPLE 1
 #define DOUBLE 2
 
-struct list *vars;
+struct global *global;
 
 char *my_strstr(char *str, char *var)
 {
@@ -114,7 +114,7 @@ static char *sub_replace(char *str, int status, int *i, int brackets, char *var,
 {
     char *name =
         strndup(str + status + 1 + brackets, *i - status - brackets * 2 - 1);
-    struct list *cur = vars;
+    struct list *cur = global->vars;
     char *replace = "";
     while (cur)
     {
@@ -143,6 +143,20 @@ char *expand_vars(char *str, char *var, char *var_rep)
     int context = NONE;
     while (str[i] != 0)
     {
+        if (str[i] == '$' && str[i + 1] == '$')
+        {
+            struct list *cur = global->vars;
+            while (cur)
+            {
+                if (strcmp("$", cur->name) == 0)
+                {
+                    str = replace_at_by(str, i, 2, cur->value);
+                    break;
+                }
+                cur = cur->next;
+            }
+            continue;
+        }
         if (str[i] == '\'')
         {
             if (context == NONE)
@@ -158,7 +172,7 @@ char *expand_vars(char *str, char *var, char *var_rep)
                 context = NONE;
         }
         if (context != SIMPLE && status == -1 && str[i] == '$'
-            && (i == 0 || str[i - 1] != '\\') && !is_var_sep(str[i + 1]))
+            && (i == 0 || str[i - 1] != '\\') && (!is_var_sep(str[i + 1])))
         {
             if (str[i + 1] == '{')
                 brackets = 1;
@@ -194,19 +208,26 @@ char *remove_quotes(char *str)
     {
         if (str[i + 1] != '\0' && str[i] == '\\' && !isspace(str[i + 1]))
         {
+            if (context != SIMPLE && str[i + 1] == '\\')
+            {
+                new[index++] = str[i];
+                i += 2;
+                continue;
+            }
             if ((context != DOUBLE || str[i + 1] != '\'') && context != SIMPLE)
             {
                 i++;
                 continue;
             }
-            else if (str[i + 1] == '\'')
+            else if (str[i + 1] == '\'' && context != DOUBLE)
             {
                 new[index++] = str[i];
                 i += 2;
                 continue;
             }
         }
-        if (str[i] == '\'' && (i == 0 || str[i - 1] != '\\'))
+        if (str[i] == '\''
+            && (i == 0 || str[i - 1] != '\\' || not_as_escape(str, i - 1)))
         {
             if (context == NONE)
             {
@@ -246,12 +267,12 @@ char *remove_quotes(char *str)
 
 void add_var(struct list *new)
 {
-    if (!vars)
+    if (!global->vars)
     {
-        vars = new;
+        global->vars = new;
         return;
     }
-    struct list *cur = vars;
+    struct list *cur = global->vars;
     struct list *prev = NULL;
     while (cur && strcmp(cur->name, new->name) != 0)
     {
@@ -266,7 +287,7 @@ void add_var(struct list *new)
     if (!prev)
     {
         new->next = cur->next;
-        vars = new;
+        global->vars = new;
         free_var(cur);
         return;
     }
@@ -358,4 +379,23 @@ void set_special_vars(void)
     var = build_var("OLDPWD", home);
     var_assign_special(var);
     free(var);
+}
+
+void unset_var(char *name)
+{
+    struct list *cur = global->vars;
+    struct list *before = global->vars;
+
+    while (cur)
+    {
+        // it should work with only one var in the list
+        if (!strcmp(name, cur->name))
+        {
+            before->next = cur->next;
+            free_var(cur);
+            return;
+        }
+        before = cur;
+        cur = cur->next;
+    }
 }

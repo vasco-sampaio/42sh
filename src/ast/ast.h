@@ -11,7 +11,13 @@ struct list
     struct list *next;
 };
 
-extern struct list *vars;
+struct global
+{
+    struct mode *current_mode;
+    struct list *vars;
+};
+
+extern struct global *global;
 
 /**
  * \brief Possible nodes types for ast structure.
@@ -31,7 +37,12 @@ enum ast_type
     AST_NEG,
     AST_WHILE,
     AST_UNTIL,
-    AST_FOR
+    AST_FOR,
+    AST_SUBSHELL,
+    AST_CMDBLOCK,
+    AST_FUNCTION,
+    AST_BREAK,
+    AST_CONTINUE
 };
 
 /**
@@ -39,9 +50,17 @@ enum ast_type
  */
 enum cmd_mode
 {
+    NORMAL = 0,
     EXIT = 1,
     BREAK = 2,
     CONTINUE = 3
+};
+
+struct mode
+{
+    enum cmd_mode mode;
+    size_t nb;
+    int depth;
 };
 
 /**
@@ -50,14 +69,20 @@ enum cmd_mode
  */
 struct ast
 {
+    int is_loop;
+
     enum ast_type type;
+
     char **list;
     size_t size;
     size_t capacity;
+
     char *var;
     char *replace;
+
     struct vec *val;
     struct ast *cond;
+
     struct ast *left;
     struct ast *right;
 };
@@ -118,6 +143,30 @@ char *build_var(char *name, char *value);
 void var_assign_special(char *str);
 
 char *my_itoa(int n);
+
+void unset_var(char *name);
+
+/**
+ * \brief Exectue args in a new process
+ */
+int subshell(char *args);
+
+/**
+ * \brief Execute cmd substitution
+ */
+char *cmd_sub(char *str, size_t quote_pos, size_t quote_end, int is_dollar);
+
+char *substitute_cmds(char *s);
+
+/**
+ * \brief Exectue args in a whole block
+ */
+int cmdblock(char *args);
+
+/**
+ * \brief Add a function in the global list
+ */
+int add_function(struct ast *ast);
 
 // char *remove_vars(char *str, char *exclude);
 

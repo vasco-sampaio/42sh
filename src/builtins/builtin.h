@@ -13,4 +13,6 @@ int export(char *args);
 
 int dot(char *args);
 
+int unset(char *args);
+
 #endif /* !BUILTIN_H */

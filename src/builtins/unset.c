@@ -1,3 +1,5 @@
+#include <ast/ast.h>
+#include <ctype.h>
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -7,6 +9,7 @@
 
 #include "builtin.h"
 
+// opt[0] -> -f opt[1] -> v
 static size_t parse_options(char *args, int *opt, size_t len)
 {
     size_t i = 0;
@@ -27,11 +30,11 @@ static size_t parse_options(char *args, int *opt, size_t len)
                 option[j - i - 1] = args[j];
             }
 
-            if (!strcmp(option, "n"))
+            if (!strcmp(option, "f"))
                 opt[0] = 1;
-            else if (!strcmp(option, "e"))
+            else if (!strcmp(option, "v"))
                 opt[1] = 1;
-            else if (!strcmp(option, "ne") || !strcmp(option, "en"))
+            else if (!strcmp(option, "fv") || !strcmp(option, "vf"))
             {
                 opt[0] = 1;
                 opt[1] = 1;
@@ -52,50 +55,49 @@ static size_t parse_options(char *args, int *opt, size_t len)
     return i;
 }
 
-int echo(char *args)
+int unset(char *args)
 {
     size_t len = strlen(args);
 
-    // options[0] => -n
-    // options[1] => -e
+    // options[0] => -f
+    // options[1] => -v
     int *options = zalloc(sizeof(int) * 2);
+    int remove_env = 0;
     size_t begin = parse_options(args, options, len);
+    if (options[0] == 1)
+        remove_env = 1;
+    if (!options[0])
+        options[1] = 1;
 
     struct vec *vector = vec_init();
-    for (size_t i = begin; i < len; ++i)
+    int code = 0;
+    for (size_t i = begin; i <= len; ++i)
     {
-        if (args[i] == '(' || args[i] == ')')
+        if (args[i] == '\0' || args[i] == ' ')
         {
-            fprintf(stderr, "42sh: Syntax error: Unexpected character: %c\n",
-                    args[i]);
-            free(options);
-            vec_destroy(vector);
-            free(vector);
-            return 2;
+            if (vector->data[0] != '_' && !isalpha(vector->data[0]))
+            {
+                fprintf(stderr, "42sh: Syntax error: '%c' unexpected\n",
+                        args[i]);
+                code = 2;
+                break;
+            }
+            if (options[0])
+                printf("FUNC\n"); // unset_func(vec_cstring(vector));
+            if (options[1])
+            {
+                unset_var(vec_cstring(vector));
+                if (remove_env)
+                    unsetenv(vector->data);
+            }
+            vec_reset(vector);
         }
-        if ((args[i] == '\\') && options[1] && i < len - 1)
-        {
-            if (args[i + 1] == '\\')
-                vec_push(vector, '\\');
-            else if (args[i + 1] == 'n')
-                vec_push(vector, '\n');
-            else if (args[i + 1] == 't')
-                vec_push(vector, '\t');
-            ++i;
-        }
-
         else
             vec_push(vector, args[i]);
     }
-    // print vec->value
-    if (!options[0])
-        printf("%s\n", vec_cstring(vector));
-    else
-        printf("%s", vec_cstring(vector));
 
-    fflush(stdout);
     free(options);
     vec_destroy(vector);
     free(vector);
-    return 0;
+    return code;
 }

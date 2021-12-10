@@ -17,6 +17,8 @@ struct opts
     char *input;
 };
 
+int not_as_escape(char *str, int pos);
+
 /**
  * \brief Return if the char c is a separator
  */
@@ -36,5 +38,10 @@ char *getcmdname(char *cmd, int *i);
  * \brief Return if the token should be printed by echo
  */
 int stop_echo(enum token_type type);
+
+/**
+ * \brief Return if str is a number among spaces
+ */
+int is_valid_bc(char *str);
 
 #endif /* ! UTILS_H */

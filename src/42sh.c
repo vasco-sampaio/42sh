@@ -10,7 +10,7 @@
 #include <utils/utils.h>
 #include <utils/vec.h>
 
-struct list *vars;
+struct global *global = NULL;
 
 static void setinitvars(int argc, char **argv)
 {
@@ -184,7 +184,15 @@ enum error read_print_loop(struct cstream *cs, struct vec *line,
         final->size = strlen(opts->input);
         final->capacity = strlen(opts->input);
     }
-    parser->lexer = lexer_create(vec_cstring(final));
+    char *str = substitute_cmds(vec_cstring(final));
+    parser->lexer = lexer_create(str);
+    if (str == NULL)
+    {
+        vec_destroy(final);
+        free(final);
+        return 2;
+    }
+    free(str);
     enum parser_state state = parsing(parser);
     if (state != PARSER_OK)
     {
@@ -197,7 +205,7 @@ enum error read_print_loop(struct cstream *cs, struct vec *line,
     set_special_vars();
     int return_code = 0;
     int eval = ast_eval(parser->ast, &return_code);
-    struct list *cur = vars;
+    struct list *cur = global->vars;
     while (cur)
     {
         struct list *tmp = cur->next;
@@ -211,6 +219,9 @@ enum error read_print_loop(struct cstream *cs, struct vec *line,
 
 int main(int argc, char *argv[])
 {
+    global = zalloc(sizeof(struct global));
+    global->current_mode = zalloc(sizeof(struct mode));
+
     setinitvars(argc, argv);
 
     int rc = 0;

@@ -1,5 +1,6 @@
 #include "lexer.h"
 
+#include <ast/ast.h>
 #include <ctype.h>
 #include <err.h>
 #include <stddef.h>
@@ -9,7 +10,7 @@
 #include <utils/utils.h>
 #include <utils/vec.h>
 
-#define SIZE 21
+#define SIZE 25
 
 static int isvalidampersand(char *str)
 {
@@ -67,16 +68,20 @@ static int match_token(char *str, int quote)
         fprintf(stderr, "Syntax error: '&' unexpected\n");
         return TOKEN_ERROR;
     }
-    char *names[SIZE] = { "if",   "then",   "else", "elif", "fi", ";",
-                          "\n",   "!",      "||",   "&&",   "|",  "while",
-                          "for",  "until",  "do",   "done", "in", "echo",
-                          "exit", "export", "." };
-    int types[SIZE] = { TOKEN_IF,  TOKEN_THEN,  TOKEN_ELSE, TOKEN_ELIF,
-                        TOKEN_FI,  TOKEN_SEMIC, TOKEN_NEWL, TOKEN_NEG,
-                        TOKEN_OR,  TOKEN_AND,   TOKEN_PIPE, TOKEN_WHILE,
-                        TOKEN_FOR, TOKEN_UNTIL, TOKEN_DO,   TOKEN_DONE,
-                        TOKEN_IN,  TOKEN_ECHO,  TOKEN_EXIT, TOKEN_EXPORT,
-                        TOKEN_DOT };
+    char *names[SIZE] = { "if",   "then",  "else", "elif",  "fi",
+                          ";",    "\n",    "!",    "||",    "&&",
+                          "|",    "while", "for",  "until", "do",
+                          "done", "in",    "echo", "exit",  "export",
+                          ".",    "(",     ")",    "{",     "}" };
+    int types[SIZE] = { TOKEN_IF,        TOKEN_THEN,      TOKEN_ELSE,
+                        TOKEN_ELIF,      TOKEN_FI,        TOKEN_SEMIC,
+                        TOKEN_NEWL,      TOKEN_NEG,       TOKEN_OR,
+                        TOKEN_AND,       TOKEN_PIPE,      TOKEN_WHILE,
+                        TOKEN_FOR,       TOKEN_UNTIL,     TOKEN_DO,
+                        TOKEN_DONE,      TOKEN_IN,        TOKEN_ECHO,
+                        TOKEN_EXIT,      TOKEN_EXPORT,    TOKEN_DOT,
+                        TOKEN_OPEN_PAR,  TOKEN_CLOSE_PAR, TOKEN_OPEN_BRAC,
+                        TOKEN_CLOSE_BRAC };
     for (size_t i = 0; i < SIZE; i++)
     {
         if (strcmp(str, names[i]) == 0)
@@ -99,20 +104,28 @@ static int handle_quotes(struct lexer *lexer, struct vec *vec, size_t len)
 {
     char quote_type = lexer->input[lexer->pos]; // ' or "
     vec_push(vec, lexer->input[lexer->pos++]);
-    size_t save_pos = lexer->pos;
-    while (lexer->pos < len && lexer->input[lexer->pos] != '\n'
-           && (lexer->input[lexer->pos] != quote_type
-               || (lexer->pos != 0
-                   && (quote_type == '\''
-                       || lexer->input[lexer->pos - 1] == '\\'))))
-        vec_push(vec, lexer->input[lexer->pos++]);
-    if (lexer->input[lexer->pos] == quote_type)
-        vec_push(vec, lexer->input[lexer->pos++]);
-    if (vec->data[vec->size - 1] != quote_type || save_pos == lexer->pos)
+    while (lexer->pos < len)
+    {
+        if (quote_type == '\'')
+        {
+            if (lexer->input[lexer->pos] == '\'')
+                break;
+            vec_push(vec, lexer->input[lexer->pos++]);
+        }
+        else if (quote_type == '\"')
+        {
+            if (lexer->input[lexer->pos] == '\"'
+                && lexer->input[lexer->pos - 1] != '\\')
+                break;
+            vec_push(vec, lexer->input[lexer->pos++]);
+        }
+    }
+    if (lexer->input[lexer->pos] != quote_type)
     {
         fprintf(stderr, "Syntax error: Unterminated quoted string\n");
         return -1;
     }
+    vec_push(vec, lexer->input[lexer->pos++]);
     return 0;
 }
 
@@ -145,25 +158,35 @@ static size_t get_redir_idx(struct lexer *lexer, size_t len)
  * @return value: return wether the lexed word is quoted.
  *                -1 if lexing error
  */
-static int get_substr(struct lexer *lexer, struct vec *vec, size_t len)
+static int get_substr(struct lexer *lexer, struct vec *vec, size_t *len)
 {
     size_t before = lexer->pos;
     int quote = 0;
-    size_t redir_index = get_redir_idx(lexer, len);
+    size_t redir_index = get_redir_idx(lexer, *len);
     if (redir_index == lexer->pos)
-        redir_index = len;
-    while (lexer->pos < len
+        redir_index = *len;
+    if (lexer->input[lexer->pos] == '(' || lexer->input[lexer->pos] == ')')
+    {
+        vec_push(vec, lexer->input[lexer->pos++]);
+        return 0;
+    }
+
+    while (lexer->pos < *len
            && (!is_separator(lexer->input[lexer->pos])
                || (lexer->input[lexer->pos] == '|' && lexer->pos != 0
                    && lexer->input[lexer->pos - 1] == '>'))
            && lexer->pos < redir_index)
     {
         char current = lexer->input[lexer->pos];
+        if (current == ')' || current == '(')
+            break;
         if ((current == '\'' || current == '\"')
-            && (lexer->pos == 0 || lexer->input[lexer->pos - 1] != '\\'))
+            && (lexer->pos == 0
+                || (lexer->input[lexer->pos - 1] != '\\'
+                    || not_as_escape(lexer->input, lexer->pos - 1))))
         {
             quote = 1;
-            int error = handle_quotes(lexer, vec, len);
+            int error = handle_quotes(lexer, vec, *len);
             if (error == -1)
                 return -1;
         }
@@ -186,7 +209,7 @@ static int get_substr(struct lexer *lexer, struct vec *vec, size_t len)
         {
             char c = lexer->input[lexer->pos++];
             vec_push(vec, c);
-            if (lexer->pos < len && lexer->input[lexer->pos] == c)
+            if (lexer->pos < *len && lexer->input[lexer->pos] == c)
                 vec_push(vec, lexer->input[lexer->pos++]);
         }
     }
@@ -205,7 +228,7 @@ struct token *get_token(struct lexer *lexer)
     if (lexer->pos >= input_len)
         return token_create(TOKEN_EOF);
     struct vec *vec = vec_init();
-    int quote = get_substr(lexer, vec, input_len);
+    int quote = get_substr(lexer, vec, &input_len);
     struct token *tok = NULL;
     if (quote == -1)
         tok = token_create(TOKEN_ERROR);
@@ -223,7 +246,10 @@ struct token *get_token(struct lexer *lexer)
 struct lexer *lexer_create(char *input)
 {
     struct lexer *new = zalloc(sizeof(struct lexer));
-    new->input = input;
+    if (input == NULL)
+        new->input = strdup("");
+    else
+        new->input = strdup(input);
     new->pos = 0;
     new->current_tok = get_token(new);
     return new;
@@ -233,6 +259,7 @@ void lexer_free(struct lexer *lexer)
 {
     if (lexer->current_tok != NULL)
         token_free(lexer->current_tok);
+    free(lexer->input);
     free(lexer);
 }
 

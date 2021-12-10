@@ -19,6 +19,7 @@ struct ast *create_ast(enum ast_type type)
     new->right = NULL;
     new->val = NULL;
     new->cond = NULL;
+    new->is_loop = 0;
     return new;
 }
 
@@ -47,8 +48,10 @@ void ast_free(struct ast *ast)
 
 void add_to_list(struct ast *ast, char *str)
 {
-    if (ast->size == ast->capacity)
+    if (ast->size >= ast->capacity || ast->capacity == 0)
     {
+        if (ast->capacity == 0)
+            ast->capacity = 5;
         ast->capacity *= 2;
         ast->list = xrealloc(ast->list, ast->capacity);
     }
@@ -61,7 +64,7 @@ static void pretty_rec(struct ast *ast)
         return;
     if (ast->type == AST_ROOT)
     {
-        printf("root ");
+        // printf("root ");
         pretty_rec(ast->left);
         pretty_rec(ast->right);
     }
@@ -147,6 +150,11 @@ static void pretty_rec(struct ast *ast)
         printf("do ");
         pretty_rec(ast->left);
         printf("done ");
+    }
+    else if (ast->type == AST_CONTINUE || ast->type == AST_BREAK)
+    {
+        printf("%s ", ast->val->data);
+        pretty_rec(ast->left);
     }
     else
         printf("pretty-print : Unknown node type\n");

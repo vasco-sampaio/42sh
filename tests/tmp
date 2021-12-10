@@ -1,4 +1,1 @@
-x="coucou test"
-for i in "$x"; do
-echo $i cc
-done
+echo \`

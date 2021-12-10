@@ -29,11 +29,16 @@ enum token_type
     TOKEN_DO = 17,
     TOKEN_DONE = 18,
     TOKEN_IN = 19,
-    TOKEN_ECHO = 20,
-    TOKEN_EXIT = 21,
-    TOKEN_EXPORT = 23,
-    TOKEN_DOT = 24,
-    TOKEN_ERROR = 25
+    TOKEN_OPEN_PAR = 20,
+    TOKEN_CLOSE_PAR = 21,
+    TOKEN_OPEN_BRAC = 22,
+    TOKEN_CLOSE_BRAC = 23,
+    TOKEN_BQUOTE = 24,
+    TOKEN_ECHO = 25,
+    TOKEN_EXIT = 26,
+    TOKEN_EXPORT = 27,
+    TOKEN_DOT = 28,
+    TOKEN_ERROR = 29
 };
 
 /**
@@ -49,5 +54,10 @@ struct token
 struct token *token_create(enum token_type type);
 
 void token_free(struct token *token);
+
+/**
+ * \brief Duplicate a token
+ */
+struct token *token_dup(struct token *tok);
 
 #endif /* ! TOKEN_H */

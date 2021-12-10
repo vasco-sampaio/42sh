@@ -16,3 +16,10 @@ void token_free(struct token *token)
         free(token->value);
     free(token);
 }
+
+struct token *token_dup(struct token *tok)
+{
+    struct token *new = token_create(tok->type);
+    new->value = strdup(tok->value);
+    return new;
+}

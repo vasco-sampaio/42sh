@@ -3,5 +3,6 @@ all_sources += files(
     'exit.c',
     'cd.c',
     'export.c',
-    'dot.c'
+    'dot.c',
+    'unset.c'
 )
