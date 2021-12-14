@@ -9,6 +9,8 @@
 
 #include "builtin.h"
 
+struct global *global;
+
 static int specific_separator(char c)
 {
     if (c == ' ' || c == ';')
@@ -36,6 +38,7 @@ int export(char *args)
         if (args[i] != '_' && !isalpha(args[i]))
         {
             fprintf(stderr, "42sh: Syntax error: '%c' unexpected\n", args[i]);
+            global->current_mode->mode = EXIT;
             return 2;
         }
         size_t count = 0;

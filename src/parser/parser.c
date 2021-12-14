@@ -283,7 +283,8 @@ static enum parser_state parse_compound_list(struct parser *parser,
     if (state != PARSER_OK)
         return state;
     tok = lexer_peek(parser->lexer);
-    if (tok->type != TOKEN_SEMIC && tok->type != TOKEN_NEWL)
+    if (tok->type != TOKEN_SEMIC && tok->type != TOKEN_NEWL
+        && tok->type != TOKEN_DSEMIC)
         return PARSER_PANIC;
 
     while (42)
@@ -296,12 +297,12 @@ static enum parser_state parse_compound_list(struct parser *parser,
             return PARSER_PANIC;
         if (tok->type != TOKEN_NEWL && tok->type != TOKEN_SEMIC)
             break;
-        lexer_pop(parser->lexer);
         token_free(tok);
+        lexer_pop(parser->lexer);
         while ((tok = lexer_peek(parser->lexer))->type == TOKEN_NEWL)
         {
-            lexer_pop(parser->lexer);
             token_free(tok);
+            lexer_pop(parser->lexer);
         }
         if (tok->type == TOKEN_ERROR)
             return PARSER_PANIC;
@@ -615,8 +616,138 @@ static enum parser_state parse_cmdblocks(struct parser *parser,
     subs->val = vec;
     subs->left = (*ast);
     (*ast) = subs;
-    tok = lexer_pop(parser->lexer); // skip ')'
+    tok = lexer_pop(parser->lexer); // skip '}'
     token_free(tok);
+    return PARSER_OK;
+}
+
+static enum parser_state parse_rule_case(struct parser *parser,
+                                         struct ast **ast)
+{
+    struct token *tok = lexer_peek(parser->lexer);
+    if (tok->type != TOKEN_WORD)
+        return PARSER_PANIC;
+    struct ast *new = create_ast(AST_CASE);
+    new->word = strdup(tok->value);
+    lexer_pop(parser->lexer);
+    token_free(tok);
+    tok = lexer_peek(parser->lexer);
+
+    if (tok->type != TOKEN_IN)
+    {
+        ast_free(new);
+        return PARSER_PANIC;
+    }
+
+    lexer_pop(parser->lexer);
+    token_free(tok);
+
+    while ((tok = lexer_peek(parser->lexer))->type == TOKEN_NEWL)
+    {
+        lexer_pop(parser->lexer);
+        token_free(tok);
+    }
+
+    int last = 0;
+    while ((tok = lexer_peek(parser->lexer))->type != TOKEN_ESAC)
+    {
+        if (last == 1)
+        {
+            ast_free(new);
+            return PARSER_PANIC;
+        }
+
+        if (tok->type == TOKEN_OPEN_PAR)
+        {
+            lexer_pop(parser->lexer);
+            token_free(tok);
+        }
+        tok = lexer_peek(parser->lexer);
+        if (tok->type != TOKEN_WORD)
+        {
+            ast_free(new);
+            return PARSER_PANIC;
+        }
+        struct cas *cas = zalloc(sizeof(struct cas));
+        cas->pattern = zalloc(sizeof(char) * (strlen(tok->value) + 4));
+        sprintf(cas->pattern, "+(%s", tok->value);
+
+        lexer_pop(parser->lexer);
+        token_free(tok);
+
+        while ((tok = lexer_peek(parser->lexer))->type == TOKEN_PIPE)
+        {
+            lexer_pop(parser->lexer);
+            token_free(tok);
+
+            tok = lexer_peek(parser->lexer);
+            if (tok->type != TOKEN_WORD)
+            {
+                cas_free(cas);
+                ast_free(new);
+                return PARSER_PANIC;
+            }
+
+            cas->pattern = realloc(
+                cas->pattern,
+                sizeof(char) * (strlen(cas->pattern) + strlen(tok->value) + 4));
+            strcat(cas->pattern, "|");
+            strcat(cas->pattern, tok->value);
+
+            lexer_pop(parser->lexer);
+            token_free(tok);
+        }
+        strcat(cas->pattern, ")");
+
+        tok = lexer_peek(parser->lexer);
+        if (tok->type != TOKEN_CLOSE_PAR)
+        {
+            cas_free(cas);
+            ast_free(new);
+            return PARSER_PANIC;
+        }
+
+        lexer_pop(parser->lexer);
+        token_free(tok);
+
+        enum parser_state state = parse_compound_list(parser, &(cas->ast));
+        if (state != PARSER_OK)
+        {
+            cas_free(cas);
+            ast_free(new);
+            return PARSER_PANIC;
+        }
+
+        tok = lexer_peek(parser->lexer);
+        if (tok->type != TOKEN_DSEMIC)
+        {
+            last = 1;
+        }
+        else
+        {
+            lexer_pop(parser->lexer);
+            token_free(tok);
+            while ((tok = lexer_peek(parser->lexer))->type == TOKEN_NEWL)
+            {
+                lexer_pop(parser->lexer);
+                token_free(tok);
+            }
+        }
+
+        struct cas *cur = new->cas;
+        if (cur)
+        {
+            while (cur->next)
+                cur = cur->next;
+            cur->next = cas;
+        }
+        else
+            new->cas = cas;
+    }
+    lexer_pop(parser->lexer);
+    token_free(tok);
+
+    *ast = new;
     return PARSER_OK;
 }
 
@@ -658,6 +789,12 @@ static enum parser_state parse_shell_command(struct parser *parser,
         token_free(tok);
         return parse_rule_until(parser, ast);
     }
+    if (tok->type == TOKEN_CASE)
+    {
+        tok = lexer_pop(parser->lexer);
+        token_free(tok);
+        return parse_rule_case(parser, ast);
+    }
     if (tok->type == TOKEN_IF)
     {
         tok = lexer_pop(parser->lexer);
@@ -666,7 +803,7 @@ static enum parser_state parse_shell_command(struct parser *parser,
     }
     return PARSER_PANIC;
 }
-/*
+
 static enum parser_state parse_funcdec(struct parser *parser, struct ast **ast)
 {
     struct token *tok = lexer_peek(parser->lexer);
@@ -675,6 +812,7 @@ static enum parser_state parse_funcdec(struct parser *parser, struct ast **ast)
     struct ast *fun_node = create_ast(AST_FUNCTION);
     struct vec *vec = vec_init();
     vec->data = strdup(tok->value);
+    vec->size = strlen(tok->value);
     token_free(tok);
     lexer_pop(parser->lexer);
     tok = lexer_peek(parser->lexer);
@@ -694,7 +832,7 @@ static enum parser_state parse_funcdec(struct parser *parser, struct ast **ast)
         ast_free(fun_node);
         vec_destroy(vec);
         free(vec);
-        return PARSER_ABSENT;
+        return PARSER_PANIC;
     }
     // Skip ')'
     token_free(tok);
@@ -707,20 +845,40 @@ static enum parser_state parse_funcdec(struct parser *parser, struct ast **ast)
         token_free(tok);
     }
     if (tok->type == TOKEN_ERROR)
+    {
         return PARSER_PANIC;
+    }
+
     fun_node->val = vec;
     (*ast) = fun_node;
-    return parse_shell_command(parser, &((*ast)->left));
+    enum parser_state shell_cmd = parse_shell_command(parser, &((*ast)->left));
+    if (shell_cmd != PARSER_OK)
+    {
+        ast_free(fun_node);
+        return PARSER_PANIC;
+    }
+    return PARSER_OK;
 }
-*/
+
 static enum parser_state parse_command(struct parser *parser, struct ast **ast)
 {
     enum parser_state state = parse_shell_command(parser, ast);
 
     if (state != PARSER_OK)
     {
-        enum parser_state state2 = parse_simple_command(parser, ast);
-        return state2;
+        struct token *save_tok = token_dup(lexer_peek(parser->lexer));
+        size_t save_pos = parser->lexer->pos;
+        state = parse_funcdec(parser, ast);
+        if (state != PARSER_OK)
+        {
+            token_free(parser->lexer->current_tok);
+            parser->lexer->current_tok = save_tok;
+            parser->lexer->pos = save_pos;
+            state = parse_simple_command(parser, ast);
+
+            return state;
+        }
+        token_free(save_tok);
     }
     struct token *tok = lexer_peek(parser->lexer);
     while (tok->type == TOKEN_REDIR)
@@ -871,6 +1029,8 @@ static enum parser_state parse_input(struct parser *parser, struct ast **ast)
         return PARSER_PANIC;
     if (tok->type == TOKEN_EOF)
         return PARSER_OK;
+    if (tok->type == TOKEN_WORD && (*ast)->type == AST_ROOT)
+        return parse_funcdec(parser, &((*ast)->right));
 
     if (tok->type == TOKEN_NEWL || tok->type == TOKEN_PIPE
         || tok->type == TOKEN_AND || tok->type == TOKEN_OR

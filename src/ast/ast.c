@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <utils/alloc.h>
+#include <utils/utils.h>
 #include <utils/vec.h>
 
 struct ast *create_ast(enum ast_type type)
@@ -43,6 +44,10 @@ void ast_free(struct ast *ast)
     ast_free(ast->cond);
     ast_free(ast->left);
     ast_free(ast->right);
+
+    if (ast->word)
+        free(ast->word);
+    cas_free(ast->cas);
     free(ast);
 }
 
@@ -156,6 +161,23 @@ static void pretty_rec(struct ast *ast)
         printf("%s ", ast->val->data);
         pretty_rec(ast->left);
     }
+    else if (ast->type == AST_CASE)
+    {
+        printf("case %s in ", ast->word);
+        struct cas *cas = ast->cas;
+        while (cas)
+        {
+            printf("( %s ) { ", cas->pattern);
+            pretty_rec(cas->ast);
+            printf("} ");
+            cas = cas->next;
+        }
+        printf("esac ");
+        pretty_rec(ast->left);
+        pretty_rec(ast->right);
+    }
+    else if (ast->type == AST_FUNCTION)
+        printf("Function declaration %s\n", ast->val->data);
     else
         printf("pretty-print : Unknown node type\n");
 }

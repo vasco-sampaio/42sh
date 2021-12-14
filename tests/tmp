@@ -1,1 +1,3 @@
-echo \`
+for c in test '' coucou; do
+echo $c
+done

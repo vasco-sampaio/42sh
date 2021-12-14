@@ -11,10 +11,21 @@ struct list
     struct list *next;
 };
 
+struct function
+{
+    char *name;
+    struct ast *body;
+    struct function *next;
+};
+
 struct global
 {
     struct mode *current_mode;
     struct list *vars;
+    struct function *functions;
+    struct list *save_vars;
+    struct parser *parsers_to_free[100];
+    int nb_parsers;
 };
 
 extern struct global *global;
@@ -42,7 +53,8 @@ enum ast_type
     AST_CMDBLOCK,
     AST_FUNCTION,
     AST_BREAK,
-    AST_CONTINUE
+    AST_CONTINUE,
+    AST_CASE
 };
 
 /**
@@ -63,6 +75,13 @@ struct mode
     int depth;
 };
 
+struct cas
+{
+    char *pattern;
+    struct ast *ast;
+    struct cas *next;
+};
+
 /**
  * \brief Structure for ast.
  * @details: cond use for ifs conditions
@@ -79,6 +98,9 @@ struct ast
 
     char *var;
     char *replace;
+
+    char *word;
+    struct cas *cas;
 
     struct vec *val;
     struct ast *cond;
@@ -168,6 +190,23 @@ int cmdblock(char *args);
  */
 int add_function(struct ast *ast);
 
+/**
+ * \brief Execute a local function from global function list
+ * Returns -1 if function not found
+ */
+int eval_func(char *cmd);
+
+/**
+ * \brief Push a variable at the beginning of the var list
+ */
+void push_front(char *name, char *value);
+
+/**
+ * \brief Remove a variable from the global list
+ */
+void remove_function(char *name);
+
 // char *remove_vars(char *str, char *exclude);
+int handle_case(struct ast *ast);
 
 #endif /* ! AST_H */

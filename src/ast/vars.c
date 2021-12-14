@@ -83,12 +83,13 @@ int is_var_sep(char c)
 {
     if (is_separator(c))
         return 1;
-    return c == '$' || c == '=' || c == '\'' || c == '\"';
+    return c == '$' || c == '=' || c == '\'' || c == '\"' || c == ')'
+        || c == '`';
 }
 
 static char *replace_at_by(char *str, int status, int len, char *replace)
 {
-    char *new = zalloc(sizeof(char) * (strlen(str) + strlen(replace) + 1));
+    char *new = zalloc(sizeof(char) * (strlen(str) + strlen(replace) + 100));
     int spaces = 0;
     if (strcmp(replace, "") == 0
         && (str[status + len] == ' ' || str[status + len] == 0))
@@ -172,7 +173,8 @@ char *expand_vars(char *str, char *var, char *var_rep)
                 context = NONE;
         }
         if (context != SIMPLE && status == -1 && str[i] == '$'
-            && (i == 0 || str[i - 1] != '\\') && (!is_var_sep(str[i + 1])))
+            && str[i + 1] != '(' && (i == 0 || str[i - 1] != '\\')
+            && (!is_var_sep(str[i + 1])))
         {
             if (str[i + 1] == '{')
                 brackets = 1;
@@ -242,7 +244,8 @@ char *remove_quotes(char *str)
                 continue;
             }
         }
-        if (str[i] == '\"' && (i == 0 || str[i - 1] != '\\'))
+        if (str[i] == '\"'
+            && (i == 0 || str[i - 1] != '\\' || not_as_escape(str, i - 1)))
         {
             if (context == NONE)
             {
@@ -384,18 +387,31 @@ void set_special_vars(void)
 void unset_var(char *name)
 {
     struct list *cur = global->vars;
-    struct list *before = global->vars;
+    struct list *before = NULL;
 
     while (cur)
     {
         // it should work with only one var in the list
         if (!strcmp(name, cur->name))
         {
-            before->next = cur->next;
+            if (!before)
+                global->vars = cur->next;
+            else
+                before->next = cur->next;
             free_var(cur);
             return;
         }
         before = cur;
         cur = cur->next;
     }
+}
+
+void push_front(char *name, char *value)
+{
+    struct list *tmp = global->vars;
+    struct list *var = zalloc(sizeof(struct list));
+    var->name = strdup(name);
+    var->value = value;
+    var->next = tmp;
+    global->vars = var;
 }

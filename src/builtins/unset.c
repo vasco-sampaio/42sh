@@ -83,7 +83,9 @@ int unset(char *args)
                 break;
             }
             if (options[0])
-                printf("FUNC\n"); // unset_func(vec_cstring(vector));
+            {
+                remove_function(vec_cstring(vector));
+            }
             if (options[1])
             {
                 unset_var(vec_cstring(vector));

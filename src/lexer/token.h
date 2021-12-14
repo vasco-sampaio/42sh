@@ -34,11 +34,14 @@ enum token_type
     TOKEN_OPEN_BRAC = 22,
     TOKEN_CLOSE_BRAC = 23,
     TOKEN_BQUOTE = 24,
-    TOKEN_ECHO = 25,
-    TOKEN_EXIT = 26,
-    TOKEN_EXPORT = 27,
-    TOKEN_DOT = 28,
-    TOKEN_ERROR = 29
+    TOKEN_CASE = 25,
+    TOKEN_ESAC = 26,
+    TOKEN_DSEMIC = 27,
+    TOKEN_ECHO = 28,
+    TOKEN_EXIT = 29,
+    TOKEN_EXPORT = 30,
+    TOKEN_DOT = 31,
+    TOKEN_ERROR = 32
 };
 
 /**

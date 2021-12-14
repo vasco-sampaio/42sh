@@ -77,6 +77,7 @@ char *cmd_sub(char *str, size_t quote_pos, size_t quote_end, int is_dollar)
     struct parser *parser = create_parser();
     parser->lexer = lexer_create(cmd);
     enum parser_state state = parsing(parser);
+
     if (state != PARSER_OK)
     {
         free(cmd);
@@ -128,11 +129,17 @@ char *cmd_sub(char *str, size_t quote_pos, size_t quote_end, int is_dollar)
     while (size > 0 && res[size - 1] == '\n')
         res[--size] = 0;
 
-    char *before = strndup(str, quote_pos - is_dollar);
+    int spaces = 0;
+    int i = quote_pos - is_dollar - 1;
+    while (i >= 0 && strlen(cmd) == 0 && str[i--] == ' ')
+        spaces++;
+
+    char *before = strndup(str, quote_pos - is_dollar - spaces);
     char *after = strdup(str + quote_end + 1);
     char *new =
         zalloc(sizeof(char) * (strlen(before) + strlen(after) + size + 1));
     sprintf(new, "%s%s%s", before, res, after);
+
     free(before);
     free(after);
     free(res);
@@ -144,6 +151,7 @@ char *cmd_sub(char *str, size_t quote_pos, size_t quote_end, int is_dollar)
 char *substitute_cmds(char *s)
 {
     char *str = strdup(s);
+    free(s);
     size_t i = 0;
     int context = NONE;
     while (str[i] != 0)

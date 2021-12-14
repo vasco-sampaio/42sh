@@ -52,7 +52,7 @@ int stop_echo(enum token_type type)
 {
     if (type != TOKEN_EOF && type != TOKEN_SEMIC && type != TOKEN_NEWL
         && type != TOKEN_PIPE && type != TOKEN_AND && type != TOKEN_OR
-        && type != TOKEN_REDIR)
+        && type != TOKEN_REDIR && type != TOKEN_DSEMIC)
         return 1;
     return 0;
 }
@@ -67,4 +67,16 @@ int is_valid_bc(char *str)
     while (str[i] != 0 && isdigit(str[i]))
         i++;
     return str[i] == 0;
+}
+
+void cas_free(struct cas *cas)
+{
+    while (cas)
+    {
+        struct cas *tmp = cas->next;
+        free(cas->pattern);
+        ast_free(cas->ast);
+        free(cas);
+        cas = tmp;
+    }
 }

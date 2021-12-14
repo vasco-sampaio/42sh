@@ -93,6 +93,9 @@ int cmd_exec(char *cmd)
     commands cmds[BLT_NB] = {
         &echo, &builtin_exit, &cd, &export, &dot, &unset
     };
+    int is_local_func = eval_func(cmd);
+    if (is_local_func != -1)
+        return is_local_func;
 
     int arg_index = 0;
     char *cmd_name = getcmdname(cmd, &arg_index);
@@ -238,9 +241,14 @@ int ast_eval(struct ast *ast, int *return_code)
         return 0;
     if (global->current_mode->mode == EXIT)
         return *return_code;
-    if (ast->type == AST_OR)
+    int left;
+    int test_cond;
+    char *tmp;
+    int a;
+    switch (ast->type)
     {
-        int left = ast_eval(ast->left, return_code);
+    case AST_OR:
+        left = ast_eval(ast->left, return_code);
         if (left == 0 || !ast->right)
             return left;
         if (ast->is_loop
@@ -249,10 +257,8 @@ int ast_eval(struct ast *ast, int *return_code)
                     && global->current_mode->nb >= 1)))
             return left;
         return ast_eval(ast->right, return_code);
-    }
-    if (ast->type == AST_ROOT)
-    {
-        int left = ast_eval(ast->left, return_code);
+    case AST_ROOT:
+        left = ast_eval(ast->left, return_code);
         if (!ast->right)
             return left;
         if (ast->is_loop
@@ -261,10 +267,9 @@ int ast_eval(struct ast *ast, int *return_code)
                     && global->current_mode->nb >= 1)))
             return left;
         return ast_eval(ast->right, return_code);
-    }
-    else if (ast->type == AST_IF || ast->type == AST_ELIF)
-    {
-        int test_cond = ast_eval(ast->cond, return_code);
+    case AST_IF:
+    case AST_ELIF:
+        test_cond = ast_eval(ast->cond, return_code);
         if (global->current_mode->mode == EXIT)
         {
             *return_code = test_cond;
@@ -287,17 +292,19 @@ int ast_eval(struct ast *ast, int *return_code)
                 return 0;
             return ast_eval(ast->right, return_code);
         }
-    }
-    else if (ast->type == AST_THEN || ast->type == AST_ELSE)
+    case AST_THEN:
+    case AST_ELSE:
         return ast_eval(ast->left, return_code);
-    else if (ast->type == AST_CMD)
-    {
+    case AST_CMD:
         if (ast->val == NULL)
             return 2;
         int res = 0;
         char *cmd2 = strdup(ast->val->data);
 
         cmd2 = expand_vars(cmd2, ast->var, ast->replace);
+        cmd2 = substitute_cmds(cmd2);
+        if (cmd2 == NULL)
+            return 2;
         cmd2 = remove_quotes(cmd2);
         if (!is_var_assign(cmd2))
             res = cmd_exec(cmd2);
@@ -324,21 +331,20 @@ int ast_eval(struct ast *ast, int *return_code)
         free(var);
         free(value);
         return res;
-    }
-    else if (ast->type == AST_REDIR)
-    {
-        char *tmp = expand_vars(ast->val->data, NULL, NULL);
+    case AST_REDIR:
+        tmp = expand_vars(ast->val->data, NULL, NULL);
+        tmp = substitute_cmds(tmp);
+        if (tmp == NULL)
+            return 2;
         tmp = remove_quotes(tmp);
         ast->val->data = tmp;
         ast->val->size = strlen(tmp);
         ast->val->capacity = strlen(tmp) + 1;
         return exec_redir(ast);
-    }
-    else if (ast->type == AST_PIPE)
+    case AST_PIPE:
         return eval_pipe(ast);
-    else if (ast->type == AST_AND)
-    {
-        int left = ast_eval(ast->left, return_code);
+    case AST_AND:
+        left = ast_eval(ast->left, return_code);
         if (left != 0)
             return left;
         if (ast->is_loop
@@ -347,15 +353,13 @@ int ast_eval(struct ast *ast, int *return_code)
                     && global->current_mode->nb >= 1)))
             return 0;
         return ast_eval(ast->right, return_code);
-    }
-    else if (ast->type == AST_NEG)
+    case AST_NEG:
         return !ast_eval(ast->left, return_code);
-    else if (ast->type == AST_WHILE)
-    {
+    case AST_WHILE:
         global->current_mode->depth++;
         set_loop(ast->left);
         set_loop(ast->cond);
-        int a = 0;
+        a = 0;
         while (global->current_mode->mode != BREAK
                && ast_eval(ast->cond, return_code) == 0)
         {
@@ -378,13 +382,11 @@ int ast_eval(struct ast *ast, int *return_code)
             global->current_mode->mode = NORMAL;
         global->current_mode->depth--;
         return a;
-    }
-    else if (ast->type == AST_UNTIL)
-    {
+    case AST_UNTIL:
         global->current_mode->depth++;
         set_loop(ast->left);
         set_loop(ast->cond);
-        int a = 0;
+        a = 0;
         while (global->current_mode->mode != BREAK
                && ast_eval(ast->cond, return_code) != 0)
         {
@@ -407,9 +409,7 @@ int ast_eval(struct ast *ast, int *return_code)
             global->current_mode->mode = NORMAL;
         global->current_mode->depth--;
         return a;
-    }
-    else if (ast->type == AST_FOR)
-    {
+    case AST_FOR:
         global->current_mode->depth++;
         set_loop(ast->left);
         set_var(ast->val->data, ast->left);
@@ -420,6 +420,9 @@ int ast_eval(struct ast *ast, int *return_code)
         {
             char *s = strdup(ast->list[i]);
             s = expand_vars(s, NULL, NULL);
+            s = substitute_cmds(s);
+            if (s == NULL)
+                return 2;
             if (s[0] != '\"')
             {
                 char **args = zalloc(sizeof(char *) * strlen(s));
@@ -467,9 +470,7 @@ int ast_eval(struct ast *ast, int *return_code)
         free(total);
         global->current_mode->depth--;
         return ret_code;
-    }
-    else if (ast->type == AST_BREAK)
-    {
+    case AST_BREAK:
         global->current_mode->mode = BREAK;
         if (ast->val->data[5] != 0)
         {
@@ -489,9 +490,7 @@ int ast_eval(struct ast *ast, int *return_code)
         if (ast->is_loop)
             return 0;
         return ast_eval(ast->left, return_code);
-    }
-    else if (ast->type == AST_CONTINUE)
-    {
+    case AST_CONTINUE:
         global->current_mode->mode = CONTINUE;
         if (ast->val->data[8] != 0)
         {
@@ -512,17 +511,32 @@ int ast_eval(struct ast *ast, int *return_code)
         if (ast->is_loop)
             return 0;
         return ast_eval(ast->left, return_code);
-    }
-    else if (ast->type == AST_SUBSHELL)
+    case AST_SUBSHELL:
         return subshell(vec_cstring(ast->val));
-    else if (ast->type == AST_CMDBLOCK)
+    case AST_CMDBLOCK:
         return cmdblock(vec_cstring(ast->val));
-    else if (ast->type == AST_FUNCTION)
-    {
+    case AST_FUNCTION:
         return add_function(ast);
-    }
-    else
-    {
+    case AST_CASE:
+        tmp = expand_vars(ast->word, NULL, NULL);
+        tmp = substitute_cmds(tmp);
+        if (tmp == NULL)
+            return 2;
+        tmp = remove_quotes(tmp);
+        ast->word = tmp;
+        struct cas *cas = ast->cas;
+        while (cas)
+        {
+            tmp = expand_vars(cas->pattern, NULL, NULL);
+            tmp = substitute_cmds(tmp);
+            if (tmp == NULL)
+                return 2;
+            tmp = remove_quotes(tmp);
+            cas->pattern = tmp;
+            cas = cas->next;
+        }
+        return handle_case(ast);
+    default:
         printf("ast->type = %d\n", ast->type);
         fprintf(stderr, "ast_eval: node type not known\n");
         return 2;

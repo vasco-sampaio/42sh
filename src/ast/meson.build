@@ -4,5 +4,6 @@ all_sources += files(
     'ast_eval.c',
     'vars.c',
     'subshell.c',
-    'functions.c'
+    'functions.c',
+    'case.c'
 )

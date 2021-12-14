@@ -1,7 +1,7 @@
 #include "token.h"
 
+#include <string.h>
 #include <utils/alloc.h>
-
 struct token *token_create(enum token_type type)
 {
     struct token *new = zalloc(sizeof(struct token));
@@ -20,6 +20,9 @@ void token_free(struct token *token)
 struct token *token_dup(struct token *tok)
 {
     struct token *new = token_create(tok->type);
-    new->value = strdup(tok->value);
+    if (tok->value)
+        new->value = strdup(tok->value);
+    else
+        new->value = strdup("");
     return new;
 }

@@ -1,11 +1,11 @@
 #!/bin/sh
 
 #name=$(basename $(pwd))
-#
+
 #if [ $name = "42sh" ]; then
 #    cd builddir
 #fi
 #
 #cd ../tests
 #python test_suite.py --binary ../builddir/42sh
-echo coucou
+echo test

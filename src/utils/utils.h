@@ -1,6 +1,7 @@
 #ifndef UTILS_H
 #define UTILS_H
 
+#include <ast/ast.h>
 #include <lexer/token.h>
 
 /**
@@ -43,5 +44,7 @@ int stop_echo(enum token_type type);
  * \brief Return if str is a number among spaces
  */
 int is_valid_bc(char *str);
+
+void cas_free(struct cas *cas);
 
 #endif /* ! UTILS_H */
