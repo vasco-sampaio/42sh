@@ -25,13 +25,14 @@ static int redir_left(struct ast *left, int fd, char *right, int append)
         return -1;
     if (dup2(file_fd, fd) == -1)
         return -1;
+
     close(file_fd);
     int return_code = 0;
     int r_code = ast_eval(left, &return_code);
     fflush(NULL);
     if (dup2(save_fd, fd) == -1) // Restore file descriptor
         return -1;
-    close(file_fd);
+
     close(save_fd);
     return r_code;
 }
@@ -58,7 +59,7 @@ int redir_simple_right(struct ast *left, int fd, char *right)
     fflush(stdout);
     if (dup2(save_fd, fd) == -1) // Restore file descriptor
         return -1;
-    close(file_fd);
+
     close(save_fd);
     return r_code;
 }
@@ -74,6 +75,11 @@ int redir_ampersand_left(struct ast *left, int fd, char *right)
         fd = STDOUT_FILENO;
     int save_fd = dup(fd);
     int file_fd = strtol(right, NULL, 10);
+    if (file_fd < 0 || file_fd > 3)
+    {
+        fprintf(stderr, "42sh: bad file descriptor\n");
+        return 2;
+    }
     if (file_fd == -1)
         return -1;
     if (dup2(file_fd, fd) == -1)
@@ -94,14 +100,16 @@ int redir_ampersand_right(struct ast *left, int fd, char *right)
 {
     if (fd == -1)
         fd = STDIN_FILENO;
+
     int save_fd = dup(fd);
     int file_fd = open(right, O_CREAT | O_RDWR);
 
-    if (file_fd == -1) // check the output strtol
+    if (file_fd == -1)
         return -1;
     if (dup2(fd, file_fd) == -1)
         return -1;
-    close(file_fd);
+
+    close(fd);
     int return_code = 0;
     int r_code = ast_eval(left, &return_code);
     fflush(NULL);

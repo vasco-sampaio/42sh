@@ -305,6 +305,9 @@ int ast_eval(struct ast *ast, int *return_code)
         cmd2 = substitute_cmds(cmd2);
         if (cmd2 == NULL)
             return 2;
+        cmd2 = arithmetic_exp(cmd2);
+        if (cmd2 == NULL)
+            return 2;
         cmd2 = remove_quotes(cmd2);
         if (!is_var_assign(cmd2))
             res = cmd_exec(cmd2);
@@ -334,6 +337,9 @@ int ast_eval(struct ast *ast, int *return_code)
     case AST_REDIR:
         tmp = expand_vars(ast->val->data, NULL, NULL);
         tmp = substitute_cmds(tmp);
+        if (tmp == NULL)
+            return 2;
+        tmp = arithmetic_exp(tmp);
         if (tmp == NULL)
             return 2;
         tmp = remove_quotes(tmp);
@@ -423,6 +429,14 @@ int ast_eval(struct ast *ast, int *return_code)
             s = substitute_cmds(s);
             if (s == NULL)
                 return 2;
+            s = arithmetic_exp(s);
+            if (s == NULL)
+                return 2;
+            if (strlen(s) == 0)
+            {
+                free(s);
+                break;
+            }
             if (s[0] != '\"')
             {
                 char **args = zalloc(sizeof(char *) * strlen(s));
@@ -522,6 +536,9 @@ int ast_eval(struct ast *ast, int *return_code)
         tmp = substitute_cmds(tmp);
         if (tmp == NULL)
             return 2;
+        tmp = arithmetic_exp(tmp);
+        if (tmp == NULL)
+            return 2;
         tmp = remove_quotes(tmp);
         ast->word = tmp;
         struct cas *cas = ast->cas;
@@ -529,6 +546,9 @@ int ast_eval(struct ast *ast, int *return_code)
         {
             tmp = expand_vars(cas->pattern, NULL, NULL);
             tmp = substitute_cmds(tmp);
+            if (tmp == NULL)
+                return 2;
+            tmp = arithmetic_exp(tmp);
             if (tmp == NULL)
                 return 2;
             tmp = remove_quotes(tmp);

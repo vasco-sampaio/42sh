@@ -178,6 +178,13 @@ int subshell(char *args);
  */
 char *cmd_sub(char *str, size_t quote_pos, size_t quote_end, int is_dollar);
 
+/**
+ * \brief Execute arithmetic expansion
+ * if suceed replace the expression by its value
+ * on failure return NULL
+ */
+char *arithmetic_exp(char *cmd);
+
 char *substitute_cmds(char *s);
 
 /**

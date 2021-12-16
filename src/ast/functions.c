@@ -13,32 +13,37 @@
 
 #include "ast.h"
 
-static int is_valid(char *str)
+static char *is_valid(char *str)
 {
-    size_t len = strlen(str);
-    if (str[len - 1] == '}')
+    char *duped = strdup(str);
+    size_t len = strlen(duped);
+    if (duped[len - 1] == '}')
     {
-        str[len - 1] = '\0'; // Remove closing parenthesis
-        return 1;
+        duped[len - 1] = '\0'; // Remove closing bracket
+        return duped;
     }
-    return 0;
+    free(duped);
+    return NULL;
 }
 
 int cmdblock(char *args)
 {
-    if (!is_valid(args))
+    char *blk = is_valid(args);
+    if (!blk)
     {
         fprintf(stderr, "42sh: Syntax error: end of file unexecpected\n");
         return 2;
     }
+
     struct parser *parser = create_parser();
-    parser->lexer = lexer_create(args);
+    parser->lexer = lexer_create(blk);
     enum parser_state state = parsing(parser);
     int return_code = 0;
     if (state != PARSER_OK)
         return_code = 2;
     return_code = ast_eval(parser->ast, &return_code);
     global->parsers_to_free[global->nb_parsers++] = parser;
+    free(blk);
     return return_code;
 }
 
@@ -99,7 +104,7 @@ int eval_func(char *cmd)
     int nb_params = 1;
     if (params)
         params++;
-    char *save_params = params;
+    char *save_params = strdup("");
     if (!params)
         nb_params = 0;
     while (nb_params <= 9 && nb_params != 0)
@@ -113,7 +118,22 @@ int eval_func(char *cmd)
             break;
         }
         char *nb_params_alloc = my_itoa(nb_params);
-        push_front(nb_params_alloc, strndup(params, current_param - params));
+        char *tmp = strndup(params, current_param - params);
+
+        while (*tmp && isblank(*tmp))
+            ++tmp;
+        if (strlen(tmp))
+        {
+            char *save_param_tmp =
+                calloc(strlen(save_params) + strlen(tmp) + 2, sizeof(char));
+            if (!strcmp("", save_params))
+                sprintf(save_param_tmp, "%s", tmp);
+            else
+                sprintf(save_param_tmp, "%s %s", save_params, tmp);
+            free(save_params);
+            save_params = save_param_tmp;
+        }
+        push_front(nb_params_alloc, tmp);
         free(nb_params_alloc);
         params = current_param + 1;
         ++nb_params;
@@ -128,6 +148,7 @@ int eval_func(char *cmd)
     push_front("*", strdup(save_params));
     push_front("@", strdup(save_params));
     push_front("#", my_itoa(nb_params));
+    free(save_params);
 
     int ret = 0;
     int return_val = ast_eval(fs->body, &ret);

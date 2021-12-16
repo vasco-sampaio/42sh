@@ -58,7 +58,7 @@ void add_to_list(struct ast *ast, char *str)
         if (ast->capacity == 0)
             ast->capacity = 5;
         ast->capacity *= 2;
-        ast->list = xrealloc(ast->list, ast->capacity);
+        ast->list = xrealloc(ast->list, ast->capacity * sizeof(char *));
     }
     ast->list[ast->size++] = strdup(str);
 }

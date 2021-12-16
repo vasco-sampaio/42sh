@@ -20,7 +20,7 @@ int not_as_escape(char *str, int pos)
 
 int is_separator(char c)
 {
-    char separator[7] = ";|\0\n "; // Array of possible separator
+    char separator[7] = ";|\0\n\t "; // Array of possible separator
     for (size_t i = 0; i < 7; i++)
     {
         if (c == separator[i])

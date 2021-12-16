@@ -39,7 +39,7 @@ int export(char *args)
         {
             fprintf(stderr, "42sh: Syntax error: '%c' unexpected\n", args[i]);
             global->current_mode->mode = EXIT;
-            return 2;
+            return 1;
         }
         size_t count = 0;
         while (args[i + count] != '\0' && !specific_separator(args[i + count])

@@ -2,6 +2,7 @@
 #include <ctype.h>
 #include <err.h>
 #include <errno.h>
+#include <evalexpr/eval_exp.h>
 #include <parser/parser.h>
 #include <stdio.h>
 #include <string.h>
@@ -150,6 +151,8 @@ char *cmd_sub(char *str, size_t quote_pos, size_t quote_end, int is_dollar)
 
 char *substitute_cmds(char *s)
 {
+    if (strlen(s) == 0)
+        return s;
     char *str = strdup(s);
     free(s);
     size_t i = 0;
@@ -176,8 +179,8 @@ char *substitute_cmds(char *s)
             char *next = strchr(str + i + 1, '`');
             if (next == NULL)
             {
+                fprintf(stderr, "42sh: Syntax error: ` unmatched");
                 free(str);
-                fprintf(stderr, "Synthax error: '`' unmatched\n");
                 return NULL;
             }
 
@@ -192,6 +195,8 @@ char *substitute_cmds(char *s)
     }
     i = strlen(str) - 1;
     context = NONE;
+    int closing = 0;
+    int opening = 0;
     while (i > 0)
     {
         if (str[i] == '\'')
@@ -208,24 +213,82 @@ char *substitute_cmds(char *s)
             else if (context == DOUBLE)
                 context = NONE;
         }
+        if (str[i] == ')')
+            closing++;
+        if (str[i] == '(')
+            opening++;
 
-        if (str[i] == '(' && str[i - 1] == '$' && not_as_escape(str, i - 2))
+        if (str[i] == '(' && str[i - 1] == '$' && not_as_escape(str, i - 2)
+            && str[i + 1] != '(')
         {
-            char *next = strchr(str + i, ')');
-            if (next == NULL)
+            if (closing == 0)
             {
+                fprintf(stderr, "42sh: Syntax error: ( unmatched");
                 free(str);
-                fprintf(stderr, "Synthax error: '(' unmatched\n");
                 return NULL;
+            }
+            char *next = str + i;
+            for (int j = 0; j < closing - (closing - opening); j++)
+            {
+                next = strchr(next + 1, ')');
+                if (next == NULL)
+                {
+                    fprintf(stderr, "42sh: Syntax error: ( unmatched");
+                    free(str);
+                    return NULL;
+                }
             }
             char *tmp = cmd_sub(str, i, next - str, 1);
             if (tmp == NULL)
                 return NULL;
             free(str);
             str = tmp;
-            i = strlen(str) - 1;
+            closing = 0;
+            opening = 0;
+            i = strlen(str);
         }
         i--;
     }
     return str;
+}
+
+char *arithmetic_exp(char *cmd)
+{
+    size_t equ_index = 0;
+    while (cmd[equ_index] != '\0' && (cmd[equ_index] != '='))
+        ++equ_index;
+    int i = equ_index + 1;
+
+    if (equ_index == strlen(cmd))
+    {
+        int doll_idx = 0;
+        while (cmd[doll_idx] != '\0' && cmd[doll_idx] != '$')
+            doll_idx++;
+        i = doll_idx;
+        equ_index = doll_idx;
+    }
+
+    if (cmd[equ_index] == '\0' || cmd[i] == '\0' || cmd[i++] != '$')
+        return cmd;
+    if (cmd[i] == '\0' || cmd[i] != '(')
+        return cmd;
+    if (cmd[i + 1] == '\0' || cmd[i + 1] != '(')
+        return cmd;
+    int res = eval_exp(cmd + i);
+    if (res == INT_MIN)
+    {
+        fprintf(stderr, "42sh: Invalid arithmetic expression\n");
+        free(cmd);
+        return NULL;
+    }
+    char *to_sprintf = zalloc(sizeof(char) * (equ_index + 21));
+    char *before_eq = NULL;
+    if (cmd[equ_index] == '=')
+        before_eq = strndup(cmd, equ_index + 1);
+    else
+        before_eq = strndup(cmd, equ_index);
+    sprintf(to_sprintf, "%s%d", before_eq, res);
+    free(cmd);
+    free(before_eq);
+    return to_sprintf;
 }

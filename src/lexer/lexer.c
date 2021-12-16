@@ -173,21 +173,50 @@ static int get_substr(struct lexer *lexer, struct vec *vec, size_t *len)
     }
 
     static int sub = 0;
-
+    int arithmetic = 0;
+    int backquotes = 0;
     while (lexer->pos < *len
-           && (!is_separator(lexer->input[lexer->pos])
+           && (backquotes || arithmetic
+               || (!is_separator(lexer->input[lexer->pos])
+                   || (arithmetic && lexer->input[lexer->pos] == '|'))
                || (lexer->input[lexer->pos] == '|' && lexer->pos != 0
                    && lexer->input[lexer->pos - 1] == '>'))
            && lexer->pos < redir_index)
     {
         char current = lexer->input[lexer->pos];
+
+        if ((current == '`')
+            && (lexer->pos == 0
+                || (lexer->input[lexer->pos - 1] != '\\'
+                    || not_as_escape(lexer->input, lexer->pos - 1))))
+        {
+            backquotes = !backquotes;
+            vec_push(vec, lexer->input[lexer->pos++]);
+            continue;
+        }
+        if (backquotes)
+        {
+            vec_push(vec, lexer->input[lexer->pos++]);
+            continue;
+        }
+
         if (current == ')' || current == '(')
         {
-            if (lexer->input[lexer->pos - 1] == '$' || sub)
-                sub = !sub;
-            else
+            if (current == '(')
+                ++sub;
+            else if (current == ')')
+                --sub;
+            if (lexer->input[lexer->pos - 1] == '$' || (arithmetic && !sub))
+                arithmetic = !arithmetic;
+            else if (!arithmetic)
                 break;
         }
+        if (arithmetic)
+        {
+            vec_push(vec, lexer->input[lexer->pos++]);
+            continue;
+        }
+
         if ((current == '\'' || current == '\"')
             && (lexer->pos == 0
                 || (lexer->input[lexer->pos - 1] != '\\'
@@ -210,10 +239,7 @@ static int get_substr(struct lexer *lexer, struct vec *vec, size_t *len)
             lexer->pos++;
         }
     }
-    /*  if (strncmp(lexer->input + lexer->pos, ";;", 2) == 0)
-    {
-        lexer->pos++;
-    }*/
+
     // check if the first character was a separator and different of space
     if (lexer->pos == before && lexer->input[before] != ' ')
     {
@@ -235,7 +261,9 @@ static int get_substr(struct lexer *lexer, struct vec *vec, size_t *len)
 struct token *get_token(struct lexer *lexer)
 {
     size_t input_len = strlen(lexer->input);
-    while (lexer->pos < input_len && lexer->input[lexer->pos] == ' ')
+    while (lexer->pos < input_len
+           && (lexer->input[lexer->pos] == ' '
+               || lexer->input[lexer->pos] == '\t'))
         lexer->pos++;
     if (lexer->pos >= input_len)
         return token_create(TOKEN_EOF);

@@ -84,7 +84,8 @@ int is_var_sep(char c)
     if (is_separator(c))
         return 1;
     return c == '$' || c == '=' || c == '\'' || c == '\"' || c == ')'
-        || c == '`';
+        || c == '`' || c == '-' || c == '+' || c == '%' || c == '*' || c == '/'
+        || c == '&' || c == '|' || c == '^';
 }
 
 static char *replace_at_by(char *str, int status, int len, char *replace)
@@ -102,6 +103,11 @@ static char *replace_at_by(char *str, int status, int len, char *replace)
             spaces++;
     }
     char *before = strndup(str, status - spaces);
+    if (status - spaces < 0)
+    {
+        free(before);
+        before = strdup("");
+    }
     char *after = strdup(str + status + len);
     sprintf(new, "%s%s%s", before, replace, after);
     free(str);
@@ -174,13 +180,15 @@ char *expand_vars(char *str, char *var, char *var_rep)
         }
         if (context != SIMPLE && status == -1 && str[i] == '$'
             && str[i + 1] != '(' && (i == 0 || str[i - 1] != '\\')
-            && (!is_var_sep(str[i + 1])))
+            && (!is_var_sep(str[i + 1]) || str[i + 1] == '*'))
         {
             if (str[i + 1] == '{')
                 brackets = 1;
             status = i;
         }
-        else if ((is_var_sep(str[i]) || (brackets == 1 && str[i] == '}'))
+        else if (((is_var_sep(str[i]) && !(str[i] == '*' && str[i - 1] == '$'))
+                  || (((str[i] == '}' || str[i] == '{') && brackets == 0)
+                      || (brackets == 1 && str[i] == '}')))
                  && status != -1)
         {
             if (str[i] == '}' && brackets == 1)

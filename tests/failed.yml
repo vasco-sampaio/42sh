@@ -1,0 +1,32 @@
+name: BAD EXPORT INVALID NAME
+    input: |
+        export 4p
+    checks:
+        -   stdout
+        -   exitcode
+        -   has_stderr
+
+-   name: BAD EXPORT INVALID SPACE 1
+    input: |
+        export a= 78
+    checks:
+        -   stdout
+        -   exitcode
+        -   has_stderr
+
+-   name: BAD EXPORT INVALID SPACE 2
+    input: |
+        export a =8
+    checks:
+        -   stdout
+        -   exitcode
+        -   has_stderr
+
+    -   name: SIMPLE INVALID EXPORT
+        input: |
+            export 1_a=42
+            echo "$a"
+        checks:
+            -   stdout
+            -   exitcode
+            -   has_stderr

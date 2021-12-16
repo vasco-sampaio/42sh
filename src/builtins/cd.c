@@ -33,7 +33,9 @@ int cd(char *args)
         args++;
     if (!strcmp("-", args))
     {
-        if (chdir(getenv("OLDPWD")) == -1)
+        char *old_pwd = getenv("OLDPWD");
+        printf("%s\n", old_pwd);
+        if (chdir(old_pwd) == -1)
         {
             fprintf(stderr, "Can't cd into %s\n", args);
             return 2;

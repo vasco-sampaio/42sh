@@ -42,6 +42,14 @@
     -   stderr
     -   exitcode
 
+-   name: REDIR AMPERSAND LEFT INVALID
+    input: |
+        echo test >&4
+    checks:
+        -   stdout
+        -   has_stderr
+        -   exitcode
+
 -   name: REDIR DEV NULL APPENDED
     input: |
         echo test2>/dev/null
@@ -347,6 +355,26 @@
     input: |
         for i in test coucou; do
         echo $i hello $icc ${i} ${i}abc $iabc${i}def
+        done
+    checks:
+    -   stdout
+    -   stderr
+    -   exitcode
+
+-   name: FOR SEQ
+    input: |
+        for i in `seq 1 10`; do
+        echo $i
+        done
+    checks:
+    -   stdout
+    -   stderr
+    -   exitcode
+
+-   name: FOR SEQ 2
+    input: |
+        for i in $(seq 1 10); do
+        echo $i
         done
     checks:
     -   stdout
@@ -688,6 +716,7 @@
     checks:
         -   stdout
         -   exitcode
+        -   stderr
 
 -   name: SIMPLE EXIT INVALID
     input: |
@@ -703,6 +732,7 @@
     checks:
         -   stdout
         -   exitcode
+        -   stderr
 
 -   name: EXIT WITH ECHO AT BEGINING
     input: |
@@ -719,6 +749,7 @@
     checks:
         -   stdout
         -   exitcode
+        -   stderr
 
 -   name: EXIT WITH IF 2
     input: |
@@ -728,6 +759,7 @@
     checks:
         -   stdout
         -   exitcode
+        -   stderr
 
 -   name: EXIT WITH IF ERROR
     input: |
@@ -745,6 +777,7 @@
     checks:
         -   stdout
         -   exitcode
+        -   stderr
 
 -   name: EXIT IN ELSE
     input: |
@@ -754,6 +787,7 @@
     checks:
         -   stdout
         -   exitcode
+        -   stderr
 
 -   name: EXIT NOTHING
     input: |
@@ -761,6 +795,7 @@
     checks:
         -   stdout
         -   exitcode
+        -   stderr
 
 -   name: ECHO EXIT
     input: |
@@ -768,6 +803,7 @@
     checks:
         -   stdout
         -   exitcode
+        -   stderr
 
 -   name: ECHO IF
     input: |
@@ -775,6 +811,7 @@
     checks:
         -   stdout
         -   exitcode
+        -   stderr
 
 -   name: ECHO ELSE
     input: |
@@ -782,6 +819,7 @@
     checks:
         -   stdout
         -   exitcode
+        -   stderr
 
 -   name: ECHO KEYWORD
     input: |
@@ -789,6 +827,7 @@
     checks:
         -   stdout
         -   exitcode
+        -   stderr
 
 -   name: ECHO BAD OPTION
     input: |
@@ -796,6 +835,35 @@
     checks:
         -   stdout
         -   exitcode
+        -   stderr
+
+-   name: ECHO FUNCTION UNSET -F AND USE
+    input: |
+        echo()
+        {
+            ls
+        }
+        echo 4 5 8
+        unset -f echo
+        echo 7458
+    checks:
+        -   stdout
+        -   exitcode
+        -   stderr
+
+-   name: ECHO FUNCTION UNSET AND USE
+    input: |
+        echo()
+        {
+            ls
+        }
+        echo 4 5 8
+        unset echo
+        echo 7458
+    checks:
+        -   stdout
+        -   exitcode
+        -   stderr
 
 -   name: SIMPLE CD
     input: |
@@ -905,6 +973,26 @@
         -   exitcode
         -   stderr
 
+-   name: FOR NO LIST
+    input: |
+        for i; do
+        echo $i
+        done
+    checks:
+        -   stdout
+        -   exitcode
+        -   stderr
+
+-   name: FOR NO LIST MISSING DO
+    input: |
+        for i;
+        echo $i
+        done
+    checks:
+        -   stdout
+        -   exitcode
+        -   has_stderr
+
 -   name: SIMPLE EXPORT
     input: |
         export a=42
@@ -913,15 +1001,6 @@
         -   stdout
         -   exitcode
         -   stderr
-
--   name: SIMPLE INVALID EXPORT
-    input: |
-        export 1_a=42
-        echo "$a"
-    checks:
-        -   stdout
-        -   exitcode
-        -   has_stderr
 
 -   name: MULTIPLE SEMICOLON EXPORT
     input: |
@@ -964,30 +1043,6 @@
         -   stdout
         -   exitcode
         -   stderr
-
--   name: BAD EXPORT INVALID NAME
-    input: |
-        export 4p
-    checks:
-        -   stdout
-        -   exitcode
-        -   has_stderr
-
--   name: BAD EXPORT INVALID SPACE 1
-    input: |
-        export a= 78
-    checks:
-        -   stdout
-        -   exitcode
-        -   has_stderr
-
--   name: BAD EXPORT INVALID SPACE 2
-    input: |
-        export a =8
-    checks:
-        -   stdout
-        -   exitcode
-        -   has_stderr
 
 -   name: DOT SCL
     input: |
@@ -1752,6 +1807,38 @@
         -   exitcode
         -   stderr
 
+-   name: CMD SUB AND SUBSHELL 1 
+    input: |
+        echo $( (echo oui) )
+    checks:
+        -   stdout
+        -   exitcode
+        -   stderr
+
+-   name: CMD SUB AND SUBSHELL 2 
+    input: |
+        echo `(echo oui)`
+    checks:
+        -   stdout
+        -   exitcode
+        -   stderr
+
+-   name: CMD SUB AND SUBSHELL WRONG 
+    input: |
+        echo $((echo oui))
+    checks:
+        -   stdout
+        -   exitcode
+        -   has_stderr
+
+-   name: CMD SUB AND SUBSHELL AND ARITHMETIC 
+    input: |
+        echo $((`echo 1` + 1))
+    checks:
+        -   stdout
+        -   exitcode
+        -   stderr
+
 -   name: CMD SUB AND VAR 1
     input: |
         a=b
@@ -2194,6 +2281,168 @@
 -   name: ESCAPE QUOTE FIX 2
     input: |
         echo \\" ' " " ' a b c d \\| " 
+    checks:
+        -   stdout
+        -   exitcode
+        -   stderr
+
+-   name: ARTHMETIC EXPRESSION EXPANSION
+    input: |
+        x=100
+        echo $x
+        x=$(($x+1))
+        echo $x
+    checks:
+        -   stdout
+        -   exitcode
+        -   stderr
+
+-   name: ARTHMETIC EXPRESSION IN LOOP
+    input: |
+        x=100
+        while [ $x -ne 0 ]; do
+            x=$(($x-1))
+            echo $x
+        done
+    checks:
+        -   stdout
+        -   exitcode
+        -   stderr
+
+-   name: ARTHMETIC EXPRESSION *
+    input: |
+        x=100
+        x=$(($x*100))
+        echo $x
+    checks:
+        -   stdout
+        -   exitcode
+        -   stderr
+
+-   name: ARTHMETIC EXPRESSION /
+    input: |
+        x=102
+        x=$(($x/7))
+        echo $x
+    checks:
+        -   stdout
+        -   exitcode
+        -   stderr
+
+-   name: ARTHMETIC EXPRESSION WITH DIRECT ECHO
+    input: |
+        x=102
+        echo $(($x*100))
+    checks:
+        -   stdout
+        -   exitcode
+        -   stderr
+
+-   name: ARTHMETIC EXPRESSION &
+    input: |
+        x=100
+        echo $(($x&4))
+    checks:
+        -   stdout
+        -   exitcode
+        -   stderr
+
+-   name: ARTHMETIC EXPRESSION |
+    input: |
+        x=100
+        echo $(($x|41))
+    checks:
+        -   stdout
+        -   exitcode
+        -   stderr
+
+-   name: ARTHMETIC EXPRESSION ||
+    input: |
+        x=100
+        echo $(($x||41))
+    checks:
+        -   stdout
+        -   exitcode
+        -   stderr
+
+-   name: ARTHMETIC EXPRESSION &&
+    input: |
+        x=100
+        echo $(($x&&41))
+    checks:
+        -   stdout
+        -   exitcode
+        -   stderr
+
+-   name: ARTHMETIC EXPRESSION ^
+    input: |
+        x=10
+        echo $(($x^4))
+    checks:
+        -   stdout
+        -   exitcode
+        -   stderr
+
+-   name: ARTHMETIC EXPRESSION ~
+    input: |
+        x=10
+        echo $((~$x))
+    checks:
+        -   stdout
+        -   exitcode
+        -   stderr
+
+-   name: ARTHMETIC EXPRESSION !
+    input: |
+        x=10
+        echo $((!$x))
+    checks:
+        -   stdout
+        -   exitcode
+        -   stderr
+
+-   name: ARTHMETIC INVALID 1
+    input: |
+        echo $((3+9-9*3+/5))
+    checks:
+        -   stdout
+        -   exitcode
+        -   has_stderr
+
+-   name: ARTHMETIC INVALID 2
+    input: |
+        echo $(((((((((((((((((3+9-9*3+(5)))
+    checks:
+        -   stdout
+        -   exitcode
+        -   has_stderr
+
+-   name: FUNCTION DOUBLE CALLS
+    input: |
+        foo()
+        {
+            echo foo
+        }
+        foo
+        foo
+    checks:
+        -   stdout
+        -   exitcode
+        -   stderr
+
+-   name: ECHO $@
+    input: |
+        echo $@
+    checks:
+        -   stdout
+        -   exitcode
+        -   stderr
+
+-   name: ECHO VAR BRACKETS OUT 
+    input: |
+        a=tot
+        echo aavv{$a}vewv
+        echo aavv{$a{vewv
     checks:
         -   stdout
         -   exitcode
